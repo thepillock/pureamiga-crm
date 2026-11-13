@@ -117,6 +117,11 @@ def _write(data):
             bench_time_cost=j.bench_time_cost, parts_cost=j.parts_cost,
             received_at=j.received_at,
         )
+        if j.repair_ref and j.repair_ref not in used_refs:
+            job.repair_ref = j.repair_ref
+            used_refs.add(j.repair_ref)
+        elif j.repair_ref:
+            stats["repair_refs_duplicated"].add(j.repair_ref)
         # Old Jetpack quotes don't record when stages changed: use last-updated as the best guess.
         if j.stage == Stage.RETURNED:
             job.returned_at = j.updated_at or j.received_at
