@@ -1,0 +1,37 @@
+{% extends "repairs/base.html" %}
+{% block title %}Board{% endblock %}
+{% block content %}
+<div class="bar">
+  <h1>Repair board</h1>
+  <form method="get" class="search">
+    <input type="search" name="q" value="{{ q }}" placeholder="Search name, serial, PA0123…">
+    {% if q %}<a href="{% url 'repairs:board' %}">Clear</a>{% endif %}
+  </form>
+</div>
+<div class="board">
+  {% for col in columns %}
+  <section class="col stage-{{ col.stage.value }}">
+    <h2>{{ col.stage.label }} <span class="count">{{ col.jobs|length }}</span></h2>
+    {% if col.stage.value == "returned" and not q %}<p class="hint">Last {{ returned_days }} days</p>{% endif %}
+    {% for job in col.jobs %}
+    <article class="card">
+      <a class="card-main" href="{{ job.get_absolute_url }}">
+        <div class="card-top"><span class="ref">{{ job.ref }}</span>
+          <span class="age {% if job.days_in_stage > 14 and job.stage != 'returned' %}stale{% endif %}">{{ job.days_in_stage }}d</span></div>
+        <div class="card-title">{{ job.title }}</div>
+        <div class="card-meta">{{ job.machine }}</div>
+        <div class="card-meta">{{ job.customer }}{% if job.technician %} · <strong>{{ job.technician.get_short_name|default:job.technician.username }}</strong>{% endif %}</div>
+      </a>
+      <form method="post" action="{% url 'repairs:job_move' job.pk %}" class="moves">
+        {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+        {% with prev=job.previous_stage nxt=job.next_stage %}
+        {% if prev %}<button name="stage" value="{{ prev.value }}" title="Back to {{ prev.label }}">←</button>{% else %}<span></span>{% endif %}
+        {% if nxt %}<button name="stage" value="{{ nxt.value }}" class="fwd">{{ nxt.label }} →</button>{% endif %}
+        {% endwith %}
+      </form>
+    </article>
+    {% empty %}<p class="empty">Nothing here</p>{% endfor %}
+  </section>
+  {% endfor %}
+</div>
+{% endblock %}

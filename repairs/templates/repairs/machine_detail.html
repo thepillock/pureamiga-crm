@@ -1,0 +1,21 @@
+{% extends "repairs/base.html" %}
+{% block title %}{{ machine }}{% endblock %}
+{% block content %}
+<div class="bar">
+  <h1>{{ machine }}</h1>
+  <a class="btn ghost" href="{% url 'repairs:machine_edit' machine.pk %}">Edit</a>
+  <a class="btn" href="{% url 'repairs:job_book_in' machine.customer.pk %}?machine={{ machine.pk }}">+ Book in again</a>
+</div>
+<section class="panel">
+  <dl>
+    <dt>Owner</dt><dd><a href="{{ machine.customer.get_absolute_url }}">{{ machine.customer }}</a></dd>
+    <dt>Model</dt><dd>{{ machine.model }}{% if machine.description %} — {{ machine.description }}{% endif %}</dd>
+    <dt>Serial</dt><dd>{{ machine.serial_number|default:"—" }}</dd>
+    {% if machine.notes %}<dt>Notes</dt><dd class="pre">{{ machine.notes }}</dd>{% endif %}
+  </dl>
+</section>
+<section class="panel">
+  <h2>Repair history</h2>
+  {% include "repairs/_job_table.html" with jobs=jobs hide_machine=True %}
+</section>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "repairs/base.html" %}
+{% block title %}All jobs{% endblock %}
+{% block content %}
+<div class="bar">
+  <h1>All jobs</h1>
+  <form method="get" class="search">
+    <input type="search" name="q" value="{{ q }}" placeholder="Search…">
+    <select name="stage" onchange="this.form.submit()">
+      <option value="">Any stage</option>
+      {% for v, l in stages %}<option value="{{ v }}" {% if v == stage %}selected{% endif %}>{{ l }}</option>{% endfor %}
+    </select>
+  </form>
+</div>
+{% include "repairs/_job_table.html" with jobs=jobs show_customer=True %}
+{% endblock %}

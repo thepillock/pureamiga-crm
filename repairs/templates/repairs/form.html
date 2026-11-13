@@ -1,0 +1,15 @@
+{% extends "repairs/base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="bar"><h1>{{ title }}</h1></div>
+<form method="post" class="panel form">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  {% for field in form %}{% include "repairs/_field.html" %}{% endfor %}
+  <div class="actions">
+    {% if offer_book_in %}<button class="btn" name="book_in" value="1">Save &amp; book in a machine</button>{% endif %}
+    <button class="btn {% if offer_book_in %}ghost{% endif %}">Save</button>
+    <a href="{{ cancel }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

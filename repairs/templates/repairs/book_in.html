@@ -1,0 +1,37 @@
+{% extends "repairs/base.html" %}
+{% block title %}Book in{% endblock %}
+{% block content %}
+<div class="bar"><h1>Book in for <a href="{{ customer.get_absolute_url }}">{{ customer }}</a></h1></div>
+<form method="post" class="panel form">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  <fieldset>
+    <legend>Machine</legend>
+    {% include "repairs/_field.html" with field=form.machine %}
+    <div class="row3 new-machine">
+      {% include "repairs/_field.html" with field=form.new_model %}
+      {% include "repairs/_field.html" with field=form.new_description %}
+      {% include "repairs/_field.html" with field=form.new_serial %}
+    </div>
+  </fieldset>
+  <fieldset>
+    <legend>Job</legend>
+    {% include "repairs/_field.html" with field=form.title %}
+    {% include "repairs/_field.html" with field=form.work_requested %}
+    {% include "repairs/_field.html" with field=form.condition_on_arrival %}
+    {% include "repairs/_field.html" with field=form.items_received %}
+    {% include "repairs/_field.html" with field=form.accessories %}
+    <div class="row3">
+      {% include "repairs/_field.html" with field=form.quote_value %}
+      {% include "repairs/_field.html" with field=form.technician %}
+    </div>
+  </fieldset>
+  <div class="actions"><button class="btn">Book in as Received</button> <a href="{{ customer.get_absolute_url }}">Cancel</a></div>
+</form>
+<script>
+  // Hide the new-machine fields when an existing machine is picked.
+  const sel = document.getElementById("id_machine"), box = document.querySelector(".new-machine");
+  const sync = () => { box.style.display = sel.value ? "none" : ""; };
+  sel.addEventListener("change", sync); sync();
+</script>
+{% endblock %}

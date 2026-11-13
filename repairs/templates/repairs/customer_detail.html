@@ -1,0 +1,34 @@
+{% extends "repairs/base.html" %}
+{% block title %}{{ customer }}{% endblock %}
+{% block content %}
+<div class="bar">
+  <h1>{{ customer }}</h1>
+  <a class="btn ghost" href="{% url 'repairs:customer_edit' customer.pk %}">Edit</a>
+  <a class="btn" href="{% url 'repairs:job_book_in' customer.pk %}">+ Book in a machine</a>
+</div>
+<div class="grid2">
+  <section class="panel">
+    <h2>Contact</h2>
+    <dl>
+      <dt>Email</dt><dd>{% if customer.email %}<a href="mailto:{{ customer.email }}">{{ customer.email }}</a>{% else %}—{% endif %}</dd>
+      <dt>Phone</dt><dd>{{ customer.phone|default:"—" }}</dd>
+      <dt>Address</dt><dd class="pre">{{ customer.address|default:"—" }}</dd>
+      {% if customer.notes %}<dt>Notes</dt><dd class="pre">{{ customer.notes }}</dd>{% endif %}
+      <dt>Customer since</dt><dd>{{ customer.created_at|date:"j M Y" }}</dd>
+    </dl>
+  </section>
+  <section class="panel">
+    <h2>Machines</h2>
+    <table class="list compact">
+      {% for m in machines %}
+      <tr><td><a href="{{ m.get_absolute_url }}">{{ m }}</a></td><td class="num">{{ m.job_count }} job{{ m.job_count|pluralize }}</td>
+        <td class="num"><a class="btn small ghost" href="{% url 'repairs:job_book_in' customer.pk %}?machine={{ m.pk }}">Book in</a></td></tr>
+      {% empty %}<tr><td class="empty">No machines yet.</td></tr>{% endfor %}
+    </table>
+  </section>
+</div>
+<section class="panel">
+  <h2>Repair jobs</h2>
+  {% include "repairs/_job_table.html" with jobs=jobs %}
+</section>
+{% endblock %}

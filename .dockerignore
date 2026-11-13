@@ -1,0 +1,6 @@
+data/
+import/
+*.sql
+.env
+**/__pycache__/
+staticfiles/

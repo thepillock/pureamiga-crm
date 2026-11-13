@@ -1,0 +1,56 @@
+{% extends "repairs/base.html" %}
+{% block title %}{{ job.ref }}{% endblock %}
+{% block content %}
+<div class="bar">
+  <h1><span class="ref">{{ job.ref }}</span> {{ job.title }}</h1>
+  <a class="btn ghost" href="{% url 'repairs:job_edit' job.pk %}">Edit</a>
+</div>
+
+<form method="post" action="{% url 'repairs:job_move' job.pk %}" class="stepper">
+  {% csrf_token %}
+  {% for s in stages %}
+  <button name="stage" value="{{ s.value }}" class="step {% if s.value == job.stage %}current{% endif %}"
+    {% if s.value == job.stage %}disabled{% endif %}>{{ s.label }}</button>
+  {% endfor %}
+</form>
+
+<div class="grid2">
+  <section class="panel">
+    <h2>Details</h2>
+    <dl>
+      <dt>Customer</dt><dd><a href="{{ job.customer.get_absolute_url }}">{{ job.customer }}</a>{% if job.customer.email %}<br><a href="mailto:{{ job.customer.email }}">{{ job.customer.email }}</a>{% endif %}{% if job.customer.phone %}<br>{{ job.customer.phone }}{% endif %}</dd>
+      <dt>Machine</dt><dd><a href="{{ job.machine.get_absolute_url }}">{{ job.machine }}</a></dd>
+      <dt>Technician</dt><dd>{{ job.technician.get_full_name|default:job.technician.username|default:"—" }}</dd>
+      <dt>Work requested</dt><dd class="pre">{{ job.work_requested|default:"—" }}</dd>
+      <dt>Condition on arrival</dt><dd class="pre">{{ job.condition_on_arrival|default:"—" }}</dd>
+      <dt>Items received</dt><dd>{% for i in job.get_items_received_display %}<span class="chip">{{ i }}</span>{% empty %}—{% endfor %}</dd>
+      <dt>Accessories</dt><dd class="pre">{{ job.accessories|default:"—" }}</dd>
+    </dl>
+  </section>
+  <section class="panel">
+    <h2>Money &amp; dates</h2>
+    <dl>
+      <dt>Quote</dt><dd>{% if job.quote_value is not None %}£{{ job.quote_value }}{% else %}—{% endif %}{% if job.quote_accepted_at %} · accepted {{ job.quote_accepted_at|date:"j M Y" }}{% endif %}</dd>
+      <dt>Bench time / parts</dt><dd>{% if job.bench_time_cost is not None %}£{{ job.bench_time_cost }}{% else %}—{% endif %} / {% if job.parts_cost is not None %}£{{ job.parts_cost }}{% else %}—{% endif %}</dd>
+      <dt>Received</dt><dd>{{ job.received_at|date:"j M Y H:i"|default:"—" }}</dd>
+      <dt>Work started</dt><dd>{{ job.started_at|date:"j M Y H:i"|default:"—" }}</dd>
+      <dt>Testing</dt><dd>{{ job.testing_at|date:"j M Y H:i"|default:"—" }}</dd>
+      <dt>Returned</dt><dd>{{ job.returned_at|date:"j M Y H:i"|default:"—" }}{% if job.return_tracking %}<br>Tracking: {{ job.return_tracking }}{% endif %}</dd>
+    </dl>
+    {% if history %}
+    <h3>Stage history</h3>
+    <ul class="history">{% for h in history %}
+      <li>{{ h.changed_at|date:"j M Y H:i" }} — {% if h.from_stage %}{{ h.get_from_stage_display }} → {% endif %}{{ h.get_to_stage_display }}{% if h.changed_by %} ({{ h.changed_by.username }}){% endif %}</li>
+    {% endfor %}</ul>
+    {% endif %}
+  </section>
+</div>
+
+<section class="panel">
+  <h2>Bench log</h2>
+  {% for n in notes %}
+  <div class="note"><div class="note-meta">{{ n.created_at|date:"j M Y H:i" }}{% if n.author %} · {{ n.author.username }}{% endif %}</div><div class="pre">{{ n.text }}</div></div>
+  {% empty %}<p class="empty">No entries yet.</p>{% endfor %}
+  <form method="post" class="note-form">{% csrf_token %}{{ note_form.text }}<button class="btn">Add entry</button></form>
+</section>
+{% endblock %}

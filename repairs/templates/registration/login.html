@@ -1,0 +1,13 @@
+{% extends "repairs/base.html" %}
+{% block title %}Log in{% endblock %}
+{% block content %}
+<form method="post" class="panel form login">
+  <h1>Log in</h1>
+  {% csrf_token %}
+  {% if form.errors %}<div class="error">Wrong username or password.</div>{% endif %}
+  {% include "repairs/_field.html" with field=form.username %}
+  {% include "repairs/_field.html" with field=form.password %}
+  <input type="hidden" name="next" value="{{ next }}">
+  <div class="actions"><button class="btn">Log in</button></div>
+</form>
+{% endblock %}

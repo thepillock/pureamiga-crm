@@ -1,0 +1,25 @@
+{% extends "repairs/base.html" %}
+{% block title %}Customers{% endblock %}
+{% block content %}
+<div class="bar">
+  <h1>{% if request.GET.book_in %}Book in: choose customer{% else %}Customers{% endif %}</h1>
+  <form method="get" class="search">
+    {% if request.GET.book_in %}<input type="hidden" name="book_in" value="1">{% endif %}
+    <input type="search" name="q" value="{{ q }}" placeholder="Name, email, phone, postcode" autofocus>
+  </form>
+  <a class="btn" href="{% url 'repairs:customer_new' %}{% if request.GET.book_in %}?book_in=1{% endif %}">+ New customer</a>
+</div>
+<table class="list">
+  <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Postcode</th><th class="num">Jobs</th><th></th></tr></thead>
+  <tbody>
+  {% for c in customers %}
+  <tr>
+    <td><a href="{{ c.get_absolute_url }}">{{ c }}</a></td>
+    <td>{{ c.email }}</td><td>{{ c.phone }}</td><td>{{ c.postcode }}</td>
+    <td class="num">{{ c.job_count }}</td>
+    <td class="num"><a class="btn small {% if not request.GET.book_in %}ghost{% endif %}" href="{% url 'repairs:job_book_in' c.pk %}">Book in</a></td>
+  </tr>
+  {% empty %}<tr><td colspan="6" class="empty">No customers found.</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endblock %}
