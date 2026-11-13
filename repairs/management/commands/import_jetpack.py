@@ -50,16 +50,18 @@ class Command(BaseCommand):
         for k, v in stats.items():
             self.stdout.write(f"  {k}: {v}")
 
-    def _technician(self, name, cache={}):
+    def _technician(self, name):
         """Match a legacy technician name to an existing user; never creates accounts."""
         if not name:
             return None
-        if name not in cache:
+        if name not in self._tech_cache:
             User = get_user_model()
-            cache[name] = User.objects.filter(Q(username__iexact=name) | Q(first_name__iexact=name)).first()
-        return cache[name]
+            self._tech_cache[name] = User.objects.filter(
+                Q(username__iexact=name) | Q(first_name__iexact=name)).first()
+        return self._tech_cache[name]
 
     def _import(self, data):
+        self._tech_cache = {}
         stats = dict(customers_created=0, customers_existing=0, machines_created=0,
                      jobs_created=0, jobs_existing=0, jobs_not_returned=0, technicians_unmatched=set())
         customers = {}

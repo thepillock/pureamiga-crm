@@ -20,7 +20,7 @@
     <dl>
       <dt>Customer</dt><dd><a href="{{ job.customer.get_absolute_url }}">{{ job.customer }}</a>{% if job.customer.email %}<br><a href="mailto:{{ job.customer.email }}">{{ job.customer.email }}</a>{% endif %}{% if job.customer.phone %}<br>{{ job.customer.phone }}{% endif %}</dd>
       <dt>Machine</dt><dd><a href="{{ job.machine.get_absolute_url }}">{{ job.machine }}</a></dd>
-      <dt>Technician</dt><dd>{{ job.technician.get_full_name|default:job.technician.username|default:"—" }}</dd>
+      <dt>Technician</dt><dd>{% if job.technician %}{{ job.technician.get_full_name|default:job.technician.username }}{% else %}—{% endif %}</dd>
       <dt>Work requested</dt><dd class="pre">{{ job.work_requested|default:"—" }}</dd>
       <dt>Condition on arrival</dt><dd class="pre">{{ job.condition_on_arrival|default:"—" }}</dd>
       <dt>Items received</dt><dd>{% for i in job.get_items_received_display %}<span class="chip">{{ i }}</span>{% empty %}—{% endfor %}</dd>

@@ -37,7 +37,7 @@ class CleaningTests(SimpleTestCase):
                          ["board", "lower_shield", "accessories"])
 
     def test_html_to_text(self):
-        self.assertEqual(ji.html_to_text("<p>One<br />Two &amp; three</p>\r\n<p>Four</p>"), "One\nTwo & three\nFour")
+        self.assertEqual(ji.html_to_text("<p>One<br />Two &amp; three</p>\r\n<p>Four</p>"), "One\nTwo & three\n\nFour")
 
 
 class ImportCommandTests(TestCase):
