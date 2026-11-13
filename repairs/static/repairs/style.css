@@ -188,3 +188,26 @@ form.hand select { width: auto; padding: 2px 6px; }
 .job-grid { align-items: stretch; }
 .fact, .fact.wide { display: block; }
 .fact .label { display: block; margin-bottom: 2px; }
+
+/* Job header actions, dated stage bar, folded cost form, log box on top */
+.job-head h1 { flex: 1; }
+.job-head form { margin: 0; }
+details.menu { position: relative; }
+details.menu > summary { list-style: none; cursor: pointer; }
+details.menu > summary::-webkit-details-marker { display: none; }
+.menu-items { position: absolute; right: 0; top: calc(100% + 4px); z-index: 10; background: #fff; border: 1px solid var(--line);
+  border-radius: 6px; box-shadow: 0 6px 18px rgba(0,0,0,.12); min-width: 180px; padding: 4px; }
+.menu-items form { margin: 0; }
+.menu-items button { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 8px 10px;
+  font: inherit; border-radius: 4px; cursor: pointer; }
+.menu-items button:hover { background: var(--bg); }
+.step { display: flex; flex-direction: column; align-items: center; gap: 1px; line-height: 1.25; }
+.step small { font-size: .75rem; color: var(--muted); font-weight: 400; }
+.step.current small { color: #c9ccd2; }
+.fact .accessories { margin-top: 6px; font-size: .9rem; }
+details.add-cost { margin-top: 8px; }
+details.add-cost > summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: .9rem; list-style: none; }
+details.add-cost > summary::-webkit-details-marker { display: none; }
+details.add-cost[open] > summary { margin-bottom: 4px; }
+.note-form { margin: 0 0 16px; }
+@media (max-width: 600px) { .job-head { gap: 8px; } .job-head h1 { flex-basis: 100%; } }

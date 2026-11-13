@@ -107,7 +107,7 @@ class RefAndNoteViewTests(TestCase):
     def test_next_free_suggested_and_assigned(self):
         RepairJob.objects.create(customer=self.customer, machine=self.machine, title="Old", repair_ref="B98")
         self.assertContains(self.client.get(reverse("repairs:job_edit", args=[self.job.pk])), "Next free: B99")
-        self.assertContains(self.client.get(self.job.get_absolute_url()), "Assign B99")
+        self.assertContains(self.client.get(self.job.get_absolute_url()), "Assign repair ref B99")
         self.client.post(reverse("repairs:job_assign_ref", args=[self.job.pk]))
         self.job.refresh_from_db()
         self.assertEqual(self.job.repair_ref, "B99")

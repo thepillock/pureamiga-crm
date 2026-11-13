@@ -11,7 +11,7 @@ from .access import (visible_costs, visible_customers, visible_jobs, visible_mac
                      visible_notes)
 from .forms import (BookInForm, CustomerForm, JobCostForm, JobNoteEditForm, JobNoteForm, MachineForm,
                     RepairJobForm, suggested_repair_ref)
-from .models import JobNote, Stage, StageChange
+from .models import STAGE_TIMESTAMP, JobNote, Stage, StageChange
 from .notes import split_note
 
 RETURNED_ON_BOARD_DAYS = 14
@@ -105,7 +105,8 @@ def job_detail(request, pk):
     User = get_user_model()
     return render(request, "repairs/job_detail.html", {
         "job": job,
-        "notes": job.notes.select_related("author"),
+        "notes": job.notes.select_related("author").order_by("-created_at", "-pk"),  # newest first
+        "steps": [{"stage": st, "at": getattr(job, STAGE_TIMESTAMP[st])} for st in Stage],
         "costs": job.costs.select_related("added_by"),
         "cost_form": JobCostForm(),
         "history": _history(job),
