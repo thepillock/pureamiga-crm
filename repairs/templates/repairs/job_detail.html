@@ -2,7 +2,7 @@
 {% block title %}{{ job.ref }}{% endblock %}
 {% block content %}
 <div class="bar">
-  <h1><span class="ref">{{ job.ref }}</span> {{ job.title }}</h1>
+  <h1><span class="ref">{{ job.ref }}</span>{% if job.repair_ref %} <span class="rref big">{{ job.repair_ref }}</span>{% endif %} {{ job.title }}</h1>
   <a class="btn ghost" href="{% url 'repairs:job_edit' job.pk %}">Edit</a>
 </div>
 
@@ -19,7 +19,9 @@
     <h2>Details</h2>
     <dl>
       <dt>Customer</dt><dd><a href="{{ job.customer.get_absolute_url }}">{{ job.customer }}</a>{% if job.customer.email %}<br><a href="mailto:{{ job.customer.email }}">{{ job.customer.email }}</a>{% endif %}{% if job.customer.phone %}<br>{{ job.customer.phone }}{% endif %}</dd>
-      <dt>Machine</dt><dd><a href="{{ job.machine.get_absolute_url }}">{{ job.machine }}</a></dd>
+      <dt>Repair ref</dt><dd>{% if job.repair_ref %}{{ job.repair_ref }}{% else %}—{% if next_repair_ref %}
+        <form method="post" action="{% url 'repairs:job_assign_ref' job.pk %}" class="inline">{% csrf_token %}<button class="btn small ghost">Assign {{ next_repair_ref }}</button></form>{% endif %}{% endif %}</dd>
+      <dt>Machine</dt><dd>{% include "repairs/_machine.html" with machine=job.machine link=True %}</dd>
       <dt>Technician</dt><dd>{% if job.technician %}{{ job.technician.get_full_name|default:job.technician.username }}{% else %}—{% endif %}</dd>
       <dt>Work requested</dt><dd class="pre">{{ job.work_requested|default:"—" }}</dd>
       <dt>Condition on arrival</dt><dd class="pre">{{ job.condition_on_arrival|default:"—" }}</dd>
@@ -49,7 +51,17 @@
 <section class="panel">
   <h2>Bench log</h2>
   {% for n in notes %}
-  <div class="note"><div class="note-meta">{{ n.created_at|date:"j M Y H:i" }}{% if n.author %} · {{ n.author.username }}{% endif %}</div><div class="pre">{{ n.text }}</div></div>
+  <div class="note" id="note-{{ n.pk }}">
+    <div class="note-meta">
+      <strong>{{ n.created_at|date:"D j M Y" }}</strong>{% if n.author %} · {{ n.author.username }}{% endif %}{% if n.edited_at %} · <em title="{{ n.edited_at|date:'j M Y H:i' }}">edited</em>{% endif %}
+      <span class="note-actions">
+        <a href="{% url 'repairs:note_edit' n.pk %}">Edit</a>
+        {% if n.can_split %}<form method="post" action="{% url 'repairs:note_split' n.pk %}" class="inline">{% csrf_token %}<button class="link" title="Make a separate entry for each date line">Split by date</button></form>{% endif %}
+        <form method="post" action="{% url 'repairs:note_delete' n.pk %}" class="inline" onsubmit="return confirm('Delete this log entry?');">{% csrf_token %}<button class="link danger">Delete</button></form>
+      </span>
+    </div>
+    <div class="pre">{{ n.text }}</div>
+  </div>
   {% empty %}<p class="empty">No entries yet.</p>{% endfor %}
   <form method="post" class="note-form">{% csrf_token %}{{ note_form.text }}<button class="btn">Add entry</button></form>
 </section>

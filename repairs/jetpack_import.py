@@ -14,6 +14,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 
+from .logtext import find_repair_ref
+
 OBJ_CONTACT = "1"
 OBJ_QUOTE = "3"
 
@@ -243,6 +245,7 @@ class Job:
     updated_at: datetime | None
     bench_log: str
     quote_notes: str
+    repair_ref: str = ""
 
 
 @dataclass
@@ -295,6 +298,8 @@ def build(sql: str, include_leads: bool = False) -> ImportData:
             data.orphan_quotes.append(qid)
             continue
         f = cf.get(qid, {})
+        bench_log = html_to_text(q.get("zbsq_content"))
+        quote_notes = clean(q.get("zbsq_notes"))
         model, detail = normalise_model(f.get("make-model", ""))
         stage, tech = parse_status(f.get("repair-status", ""))
         data.jobs.append(Job(
@@ -317,7 +322,8 @@ def build(sql: str, include_leads: bool = False) -> ImportData:
             received_at=epoch(q.get("zbsq_date")) or epoch(q.get("zbsq_created")),
             accepted_at=epoch(q.get("zbsq_accepted")),
             updated_at=epoch(q.get("zbsq_lastupdated")),
-            bench_log=html_to_text(q.get("zbsq_content")),
-            quote_notes=clean(q.get("zbsq_notes")),
+            bench_log=bench_log,
+            quote_notes=quote_notes,
+            repair_ref=find_repair_ref("\n".join([bench_log, quote_notes, clean(q.get("zbsq_title"))])),
         ))
     return data

@@ -68,10 +68,16 @@ class ImportCommandTests(TestCase):
         self.assertIsNotNone(first.returned_at)
         self.assertEqual(first.items_received, ["board", "lower_shield", "accessories"])
         self.assertEqual(first.bench_time_cost, Decimal("35.00"))
-        self.assertTrue(first.notes.filter(text__contains="Recapped & tested").exists())
+        self.assertEqual(first.repair_ref, "A09")
+        # Bench log split into dated entries, after the undated preamble
+        entries = list(first.notes.filter(text__startswith=("Recapped")).values_list("text", flat=True))
+        self.assertEqual(entries, ["Recapped & tested\nVideo OK"])
+        self.assertTrue(first.notes.filter(text="Soak tested").exists())
+        self.assertTrue(first.notes.filter(text__contains="Unit arrived.").exists())
 
         # Same serial (case-insensitive) on the same customer -> same machine, with history.
         second = RepairJob.objects.get(legacy_jetpack_id=11)
+        self.assertEqual(second.repair_ref, "")  # A09 already taken by the first job
         self.assertEqual(second.machine_id, first.machine_id)
         self.assertEqual(second.stage, Stage.TESTING)
         self.assertEqual(second.technician, chris)

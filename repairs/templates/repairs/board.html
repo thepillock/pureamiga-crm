@@ -16,10 +16,10 @@
     {% for job in col.jobs %}
     <article class="card">
       <a class="card-main" href="{{ job.get_absolute_url }}">
-        <div class="card-top"><span class="ref">{{ job.ref }}</span>
+        <div class="card-top"><span><span class="ref">{{ job.ref }}</span>{% if job.repair_ref %} <span class="rref">{{ job.repair_ref }}</span>{% endif %}</span>
           <span class="age {% if job.days_in_stage > 14 and job.stage != 'returned' %}stale{% endif %}">{{ job.days_in_stage }}d</span></div>
         <div class="card-title">{{ job.title }}</div>
-        <div class="card-meta">{{ job.machine }}</div>
+        <div class="card-meta">{% include "repairs/_machine.html" with machine=job.machine %}</div>
         <div class="card-meta">{{ job.customer }}{% if job.technician %} · <strong>{{ job.technician.get_short_name|default:job.technician.username }}</strong>{% endif %}</div>
       </a>
       <form method="post" action="{% url 'repairs:job_move' job.pk %}" class="moves">

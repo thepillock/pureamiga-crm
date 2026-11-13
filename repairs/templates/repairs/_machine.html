@@ -1,0 +1,1 @@
+{% if link %}<a href="{{ machine.get_absolute_url }}">{{ machine.display_model }}</a>{% else %}{{ machine.display_model }}{% endif %}{% if machine.serial_number %}<br><span class="serial">{{ machine.serial_number }}</span>{% endif %}

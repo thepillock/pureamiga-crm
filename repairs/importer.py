@@ -11,6 +11,7 @@ from django.db.models import Q
 
 from . import jetpack_import as ji
 from .models import Customer, JobNote, Machine, RepairJob, Stage, StageChange
+from .notes import IMPORTED_HEADER, split_note
 
 
 class _DryRun(Exception):
@@ -35,6 +36,8 @@ class ImportResult:
             "machines_created": "Machines added", "jobs_created": "Repair jobs added",
             "jobs_existing": "Repair jobs already imported", "jobs_not_returned": "Jobs still open (not Returned)",
             "technicians_unmatched": "Technician names with no matching user",
+            "log_entries_dated": "Bench log split into dated entries",
+            "repair_refs_duplicated": "Repair refs used twice (left blank on the later job)",
         }
         for k, v in self.stats.items():
             yield f"{labels.get(k, k)}: {v}"
@@ -68,8 +71,10 @@ def _technician(name, cache):
 
 def _write(data):
     tech_cache = {}
+    used_refs = set(RepairJob.objects.exclude(repair_ref="").values_list("repair_ref", flat=True))
     stats = dict(customers_created=0, customers_existing=0, machines_created=0,
-                 jobs_created=0, jobs_existing=0, jobs_not_returned=0, technicians_unmatched=set())
+                 jobs_created=0, jobs_existing=0, jobs_not_returned=0,
+                 log_entries_dated=0, technicians_unmatched=set(), repair_refs_duplicated=set())
     customers = {}
     for c in data.customers:
         obj = Customer.objects.filter(legacy_jetpack_id=c.legacy_id).first()
@@ -138,4 +143,5 @@ def _write(data):
                                    created_at=j.updated_at or job.created_at)
 
     stats["technicians_unmatched"] = ", ".join(sorted(stats["technicians_unmatched"])) or "none"
+    stats["repair_refs_duplicated"] = ", ".join(sorted(stats["repair_refs_duplicated"])) or "none"
     return stats

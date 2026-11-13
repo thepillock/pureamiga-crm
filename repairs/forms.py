@@ -1,6 +1,19 @@
 from django import forms
 
+from .logtext import next_repair_ref, normalise_repair_ref
 from .models import ITEMS_RECEIVED_CHOICES, Customer, JobNote, Machine, RepairJob
+
+
+def clean_repair_ref_value(value, job_pk=None):
+    """Upper-case it and make sure no other job already has it."""
+    value = normalise_repair_ref(value)
+    if value and RepairJob.objects.filter(repair_ref=value).exclude(pk=job_pk).exists():
+        raise forms.ValidationError(f"{value} is already used by another job.")
+    return value
+
+
+def suggested_repair_ref():
+    return next_repair_ref(RepairJob.objects.exclude(repair_ref="").values_list("repair_ref", flat=True))
 
 
 class ItemsReceivedField(forms.MultipleChoiceField):
@@ -83,7 +96,7 @@ class RepairJobForm(forms.ModelForm):
     class Meta:
         model = RepairJob
         fields = [
-            "title", "machine", "technician", "work_requested", "condition_on_arrival", "items_received",
+            "title", "repair_ref", "machine", "technician", "work_requested", "condition_on_arrival", "items_received",
             "accessories", "quote_value", "quote_accepted_at", "bench_time_cost", "parts_cost",
             "return_tracking",
         ]
@@ -97,6 +110,23 @@ class RepairJobForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["machine"].queryset = self.instance.customer.machines.all()
+        if not self.instance.repair_ref:
+            nxt = suggested_repair_ref()
+            if nxt:
+                self.fields["repair_ref"].help_text += f" Next free: {nxt}"
+
+    def clean_repair_ref(self):
+        return clean_repair_ref_value(self.cleaned_data.get("repair_ref"), self.instance.pk)
+
+
+class JobNoteEditForm(forms.ModelForm):
+    class Meta:
+        model = JobNote
+        fields = ["created_at", "text"]
+        widgets = {
+            "created_at": forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
+            "text": forms.Textarea(attrs={"rows": 10}),
+        }
 
 
 class JobNoteForm(forms.ModelForm):

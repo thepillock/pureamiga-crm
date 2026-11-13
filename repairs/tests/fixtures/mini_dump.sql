@@ -5,8 +5,8 @@ INSERT INTO `wpdv_zbs_contacts` (`ID`, `zbs_site`, `zbsc_status`, `zbsc_email`, 
 (3, 1, 'Customer', 'bob@example.com', 'Bob', 'Paula', '', '', '', '', 1645000002);
 
 INSERT INTO `wpdv_zbs_quotes` (`ID`, `zbs_site`, `zbsq_title`, `zbsq_value`, `zbsq_date`, `zbsq_content`, `zbsq_notes`, `zbsq_accepted`, `zbsq_created`, `zbsq_lastupdated`) VALUES
-(10, 1, 'A1200 premium recap and \\\"fix video\\\"', '54.00', 1645228800, '<p>Unit arrived.<br />Recapped &amp; tested</p>', '', 1646000000, 1645265848, 1646497714),
-(11, 1, 'A1200 again', '20.00', 1700000000, '', 'Second visit', 0, 1700000000, 1700100000),
+(10, 1, 'A1200 premium recap and \\\"fix video\\\"', '54.00', 1645228800, '<p>Unit arrived.<br />Repair Ref A09</p>\r\n<p>21/2/2022<br />Recapped &amp; tested<br />Video OK</p>\r\n<ul><li>26/2/2022 - Soak tested</li></ul>', '', 1646000000, 1645265848, 1646497714),
+(11, 1, 'A1200 again', '20.00', 1700000000, '<p>Repair A09 again</p>', 'Second visit', 0, 1700000000, 1700100000),
 (12, 1, 'SX32 repair', '30.00', 1710000000, '', '', 0, 1710000000, 1710100000),
 (13, 1, 'Orphan quote', '0.00', 0, '', '', 0, 1710000000, 1710000000);
 

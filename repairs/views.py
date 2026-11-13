@@ -6,8 +6,10 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .forms import BookInForm, CustomerForm, JobNoteForm, MachineForm, RepairJobForm
+from .forms import (BookInForm, CustomerForm, JobNoteEditForm, JobNoteForm, MachineForm, RepairJobForm,
+                    suggested_repair_ref)
 from .models import Customer, JobNote, Machine, RepairJob, Stage, StageChange
+from .notes import split_note
 
 RETURNED_ON_BOARD_DAYS = 14
 
@@ -35,6 +37,7 @@ def _job_search(q):
         Q(title__icontains=q) | Q(customer__first_name__icontains=q) | Q(customer__last_name__icontains=q)
         | Q(customer__email__icontains=q) | Q(machine__serial_number__icontains=q)
         | Q(machine__model__icontains=q) | Q(machine__description__icontains=q)
+        | Q(repair_ref__iexact=q)
     )
     ref = q.upper().removeprefix("PA")
     if ref.isdigit():
@@ -69,6 +72,7 @@ def job_detail(request, pk):
         "history": job.stage_changes.select_related("changed_by"),
         "note_form": note_form,
         "stages": Stage,
+        "next_repair_ref": "" if job.repair_ref else suggested_repair_ref(),
     })
 
 
@@ -160,3 +164,48 @@ def machine_edit(request, pk):
         form.save()
         return redirect(machine)
     return render(request, "repairs/form.html", {"form": form, "title": f"Edit {machine}", "cancel": machine.get_absolute_url()})
+
+
+@require_POST
+def job_assign_ref(request, pk):
+    """Give the job the next free repair ref."""
+    job = get_object_or_404(RepairJob, pk=pk)
+    if not job.repair_ref:
+        ref = suggested_repair_ref()
+        if ref:
+            job.repair_ref = ref
+            job.save(update_fields=["repair_ref", "updated_at"])
+            messages.success(request, f"Repair ref {ref} assigned to {job.ref}.")
+    return redirect(job)
+
+
+def note_edit(request, pk):
+    note = get_object_or_404(JobNote.objects.select_related("job"), pk=pk)
+    form = JobNoteEditForm(request.POST or None, instance=note)
+    if request.method == "POST" and form.is_valid():
+        note = form.save(commit=False)
+        note.edited_at = timezone.now()
+        note.save()
+        return redirect(f"{note.job.get_absolute_url()}#note-{note.pk}")
+    return render(request, "repairs/note_edit.html", {"form": form, "note": note, "job": note.job})
+
+
+@require_POST
+def note_delete(request, pk):
+    note = get_object_or_404(JobNote.objects.select_related("job"), pk=pk)
+    job = note.job
+    note.delete()
+    messages.success(request, "Log entry deleted.")
+    return redirect(job)
+
+
+@require_POST
+def note_split(request, pk):
+    note = get_object_or_404(JobNote.objects.select_related("job"), pk=pk)
+    job = note.job
+    added = split_note(note)
+    if added:
+        messages.success(request, f"Split into {added} dated entr{'y' if added == 1 else 'ies'}.")
+    else:
+        messages.info(request, "No date lines found to split on.")
+    return redirect(job)

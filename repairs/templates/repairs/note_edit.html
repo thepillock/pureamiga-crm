@@ -1,0 +1,11 @@
+{% extends "repairs/base.html" %}
+{% block title %}Edit log entry{% endblock %}
+{% block content %}
+<div class="bar"><h1>Edit log entry · <a href="{{ job.get_absolute_url }}"><span class="ref">{{ job.ref }}</span> {{ job.title }}</a></h1></div>
+<form method="post" class="panel form">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  {% for field in form %}{% include "repairs/_field.html" %}{% endfor %}
+  <div class="actions"><button class="btn">Save</button> <a href="{{ job.get_absolute_url }}#note-{{ note.pk }}">Cancel</a></div>
+</form>
+{% endblock %}

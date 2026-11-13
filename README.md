@@ -51,7 +51,8 @@ What the importer does:
 - Turns each quote into a repair job: title, value, accepted date, costs, work requested, condition, accessories and the parts-sent checklist.
 - Creates a machine per job from make/model + serial. Model names are normalised ("A1200" → Amiga 1200), and a customer's jobs with the same serial share one machine.
 - Splits "Chris - In test" into stage + technician. Jobs with no status, or "Completed", go to **Returned**.
-- Copies the HTML bench log and quote notes into the bench log, and keeps the old status text on each job.
+- Copies the bench log and quote notes across, splitting the bench log into one entry per date line (`21/2/2022`), and keeps the old status text on each job.
+- Picks up the repair ref from the bench log ("Repair Ref B12", "Repair number A04", "Repair A11"). If two jobs share a ref, the later one is left blank and listed in the summary.
 - Re-running is safe: anything already imported is skipped.
 
 ### 4. NPM+ (optional, recommended)
@@ -110,5 +111,7 @@ Optional environment overrides: `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`, `DJ
 
 - **New repair:** **+ Book in** → find or create the customer → pick their machine or enter a new one → it lands in **Received**.
 - Move jobs with the arrow buttons on the board, or the stage bar on the job page. Moving a job to *Being worked on* assigns it to you if it has no technician yet.
-- Search anywhere by name, email, serial or job ref (`PA0042`).
+- Search anywhere by name, email, serial, job ref (`PA0042`) or repair ref (`B55`).
+- **Job ref vs repair ref:** every job gets a job ref (`PA0042`). Jobs that turn into a repair also get a repair ref: two digits, or a letter and two digits (`36`, `A04`, `B55`). Set it on the job's Edit page, or click **Assign** on the job page to take the next free one.
+- **Bench log:** each entry can be edited (text and date) or deleted. If an entry has dates on their own lines (`21/2/2022`), **Split by date** turns it into one entry per date.
 - Returned jobs stay on the board for 14 days. All of them are under **All jobs**.

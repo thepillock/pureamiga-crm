@@ -1,7 +1,10 @@
 from django.conf import settings
+from django.core.validators import RegexValidator
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
+
+from .logtext import has_date_lines
 
 
 class Stage(models.TextChoices):
@@ -37,6 +40,10 @@ ITEMS_RECEIVED_CHOICES = [
     ("original_box", "Original box"),
     ("accessories", "Accessories (see list)"),
 ]
+
+
+repair_ref_validator = RegexValidator(
+    r"^[A-Z]?\d{2}$", "Two digits, or a letter and two digits, e.g. 36 or B55.")
 
 
 class TimeStamped(models.Model):
@@ -94,10 +101,16 @@ class Machine(TimeStamped):
         ordering = ["model", "serial_number"]
 
     def __str__(self):
+        """One line, for dropdowns: 'Amiga 1200 (Rev 1D4) - 3456789'."""
+        return f"{self.display_model} - {self.serial_number}" if self.serial_number else self.display_model
+
+    @property
+    def display_model(self):
+        """Make/model without the serial, e.g. 'Amiga 1200 (Rev 1D4)' or 'DCE SX32 plus riser'."""
         label = self.model if self.model not in ("Other", "Unknown") or not self.description else self.description
         if self.description and label != self.description:
             label = f"{label} ({self.description})"
-        return f"{label} #{self.serial_number}" if self.serial_number else label
+        return label
 
     def get_absolute_url(self):
         return reverse("repairs:machine_detail", args=[self.pk])
@@ -107,6 +120,10 @@ class RepairJob(TimeStamped):
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name="jobs")
     machine = models.ForeignKey(Machine, on_delete=models.PROTECT, related_name="jobs")
     title = models.CharField(max_length=200, help_text="Short summary, e.g. 'A1200 premium recap'")
+    repair_ref = models.CharField(
+        "Repair ref", max_length=3, blank=True, db_index=True, validators=[repair_ref_validator],
+        help_text="Given when a job becomes a repair: 36, A04, B55…",
+    )
     stage = models.CharField(max_length=20, choices=Stage.choices, default=Stage.RECEIVED, db_index=True)
     technician = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="repair_jobs",
@@ -200,8 +217,13 @@ class JobNote(models.Model):
     """Bench log entry."""
     job = models.ForeignKey(RepairJob, on_delete=models.CASCADE, related_name="notes")
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
-    created_at = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField("Date", default=timezone.now)
+    edited_at = models.DateTimeField(null=True, blank=True, editable=False)
     text = models.TextField()
+
+    @property
+    def can_split(self):
+        return has_date_lines(self.text)
 
     class Meta:
         ordering = ["created_at", "pk"]

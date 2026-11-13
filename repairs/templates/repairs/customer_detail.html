@@ -21,7 +21,7 @@
     <h2>Machines</h2>
     <table class="list compact">
       {% for m in machines %}
-      <tr><td><a href="{{ m.get_absolute_url }}">{{ m }}</a></td><td class="num">{{ m.job_count }} job{{ m.job_count|pluralize }}</td>
+      <tr><td>{% include "repairs/_machine.html" with machine=m link=True %}</td><td class="num">{{ m.job_count }} job{{ m.job_count|pluralize }}</td>
         <td class="num"><a class="btn small ghost" href="{% url 'repairs:job_book_in' customer.pk %}?machine={{ m.pk }}">Book in</a></td></tr>
       {% empty %}<tr><td class="empty">No machines yet.</td></tr>{% endfor %}
     </table>
