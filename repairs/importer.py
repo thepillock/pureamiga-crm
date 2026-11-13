@@ -138,11 +138,13 @@ def _write(data):
 
         StageChange.objects.create(job=job, from_stage="", to_stage=j.stage,
                                    changed_at=j.updated_at or job.created_at)
-        for label, text in (("Imported from Jetpack CRM - quote notes", j.quote_notes),
-                            ("Imported from Jetpack CRM - bench log", j.bench_log)):
-            if text:
-                JobNote.objects.create(job=job, text=f"[{label}]\n{text}",
-                                       created_at=j.received_at or job.created_at)
+        if j.quote_notes:
+            JobNote.objects.create(job=job, text=f"[Imported from Jetpack CRM - quote notes]\n{j.quote_notes}",
+                                   created_at=j.received_at or job.created_at)
+        if j.bench_log:
+            log = JobNote.objects.create(job=job, text=f"{IMPORTED_HEADER}\n{j.bench_log}",
+                                         created_at=j.received_at or job.created_at)
+            stats["log_entries_dated"] += split_note(log)
         if j.raw_status:
             JobNote.objects.create(job=job, text=f"[Jetpack repair status was: {j.raw_status}]",
                                    created_at=j.updated_at or job.created_at)
