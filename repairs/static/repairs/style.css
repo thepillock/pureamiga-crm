@@ -169,3 +169,22 @@ form.hand select { width: auto; padding: 2px 6px; }
 @media (max-width: 900px) { .job-grid { grid-template-columns: 1fr; } }
 .note-form .btn { white-space: nowrap; }
 @media (max-width: 600px) { .costs .muted { display: none; } .costs td { padding: 5px 3px; } }
+
+/* Compact full-width customer & machine strip */
+.facts-panel { padding: 14px 18px; }
+.facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 24px; }
+.fact { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; }
+.fact .label { font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.fact .chip { margin: 2px 4px 0 0; }
+.fact.wide { flex-direction: row; flex-wrap: wrap; align-items: baseline; }
+.fact.wide .label { width: 100%; }
+.fact.wide2 { grid-column: span 2; }
+.fact.wide4 { grid-column: span 4; }
+.job-grid > .panel { margin-bottom: 0; height: 100%; }
+@media (max-width: 900px) {
+  .facts { grid-template-columns: 1fr 1fr; }
+  .fact.wide, .fact.wide2, .fact.wide4 { grid-column: span 2; }
+}
+.job-grid { align-items: stretch; }
+.fact, .fact.wide { display: block; }
+.fact .label { display: block; margin-bottom: 2px; }

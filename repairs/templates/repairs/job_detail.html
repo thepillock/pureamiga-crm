@@ -14,23 +14,21 @@
   {% endfor %}
 </form>
 
+<section class="panel facts-panel">
+  <div class="facts">
+    <div class="fact"><span class="label">Customer</span><a href="{{ job.customer.get_absolute_url }}">{{ job.customer }}</a></div>
+    <div class="fact"><span class="label">Machine</span>{% include "repairs/_machine.html" with machine=job.machine link=True %}</div>
+    <div class="fact"><span class="label">Repair ref</span>{% if job.repair_ref %}{{ job.repair_ref }}{% else %}—{% if next_repair_ref %}
+      <form method="post" action="{% url 'repairs:job_assign_ref' job.pk %}" class="inline">{% csrf_token %}<button class="btn small ghost">Assign {{ next_repair_ref }}</button></form>{% endif %}{% endif %}</div>
+    <div class="fact wide"><span class="label">Items received</span>{% for i in job.get_items_received_display %}<span class="chip">{{ i }}</span>{% empty %}—{% endfor %}</div>
+    {% if job.work_requested %}<div class="fact wide2"><span class="label">Work requested</span><span class="pre">{{ job.work_requested }}</span></div>{% endif %}
+    {% if job.condition_on_arrival %}<div class="fact wide2"><span class="label">Condition on arrival</span><span class="pre">{{ job.condition_on_arrival }}</span></div>{% endif %}
+    {% if job.accessories %}<div class="fact wide4"><span class="label">Accessories</span><span class="pre">{{ job.accessories }}</span></div>{% endif %}
+  </div>
+</section>
+
 <div class="job-grid">
   <section class="panel">
-    <h2>Customer &amp; machine</h2>
-    <dl>
-      <dt>Customer</dt><dd><a href="{{ job.customer.get_absolute_url }}">{{ job.customer }}</a>{% if job.customer.email %}<br><a href="mailto:{{ job.customer.email }}">{{ job.customer.email }}</a>{% endif %}{% if job.customer.phone %}<br>{{ job.customer.phone }}{% endif %}</dd>
-      <dt>Machine</dt><dd>{% include "repairs/_machine.html" with machine=job.machine link=True %}</dd>
-      <dt>Repair ref</dt><dd>{% if job.repair_ref %}{{ job.repair_ref }}{% else %}—{% if next_repair_ref %}
-        <form method="post" action="{% url 'repairs:job_assign_ref' job.pk %}" class="inline">{% csrf_token %}<button class="btn small ghost">Assign {{ next_repair_ref }}</button></form>{% endif %}{% endif %}</dd>
-      <dt>Work requested</dt><dd class="pre">{{ job.work_requested|default:"—" }}</dd>
-      <dt>Condition on arrival</dt><dd class="pre">{{ job.condition_on_arrival|default:"—" }}</dd>
-      <dt>Items received</dt><dd>{% for i in job.get_items_received_display %}<span class="chip">{{ i }}</span>{% empty %}—{% endfor %}</dd>
-      <dt>Accessories</dt><dd class="pre">{{ job.accessories|default:"—" }}</dd>
-    </dl>
-  </section>
-
-  <div class="side">
-    <section class="panel">
       <h2>Stage history</h2>
       <table class="timeline">
         {% for h in history %}
@@ -73,7 +71,6 @@
         {{ cost_form.kind }} {{ cost_form.description }} {{ cost_form.amount }} <button class="btn small">Add</button>
       </form>
     </section>
-  </div>
 </div>
 
 <section class="panel">
