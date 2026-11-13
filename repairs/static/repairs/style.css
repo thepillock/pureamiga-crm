@@ -151,3 +151,21 @@ form.hand select { width: auto; padding: 2px 6px; }
 .row-actions a, .row-actions button.link { color: var(--muted); margin-left: 8px; }
 .cost-form { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
 .cost-form select { width: auto; } .cost-form input[name=description] { flex: 1; min-width: 160px; } .cost-form input[name=amount] { width: 110px; }
+
+/* Job page layout: customer & machine | (stage history + handover, costs); work log full width */
+.job-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.job-grid .side > .panel:last-child { margin-bottom: 0; }
+.job-grid > .panel { margin-bottom: 0; }
+.job-grid + .panel { margin-top: 16px; }
+.timeline { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.timeline td { padding: 5px 8px 5px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.timeline tr:last-child td { border-bottom: 0; }
+.timeline .when { white-space: nowrap; width: 1%; color: var(--muted); }
+.timeline .when span { margin-left: 6px; font-size: .8rem; opacity: .7; }
+.timeline .who { text-align: right; color: var(--muted); white-space: nowrap; }
+.handover { margin-top: 14px; padding-top: 12px; border-top: 2px solid var(--bg); }
+.handover dl { grid-template-columns: 120px 1fr; }
+.quote-line { margin: 0 0 8px; }
+@media (max-width: 900px) { .job-grid { grid-template-columns: 1fr; } }
+.note-form .btn { white-space: nowrap; }
+@media (max-width: 600px) { .costs .muted { display: none; } .costs td { padding: 5px 3px; } }

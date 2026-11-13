@@ -133,7 +133,7 @@ class JobNoteForm(forms.ModelForm):
     class Meta:
         model = JobNote
         fields = ["text"]
-        widgets = {"text": forms.Textarea(attrs={"rows": 3, "placeholder": "Add to the bench log…"})}
+        widgets = {"text": forms.Textarea(attrs={"rows": 3, "placeholder": "Add to the work log…"})}
         labels = {"text": ""}
 
 
