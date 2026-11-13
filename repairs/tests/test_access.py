@@ -140,14 +140,22 @@ class VisibilityTests(TestCase):
         cost = job.costs.get(kind="postage")
         self.assertEqual(cost.added_by, self.phil)
         resp = self.client.get(job.get_absolute_url())
-        self.assertContains(resp, "£15.50")          # total
-        self.assertContains(resp, "£24.50")          # quote 40 less costs
+        self.assertContains(resp, "Total – Phil")
+        self.assertContains(resp, "£15.50")
+        self.assertNotContains(resp, "Total – Chris")
+        self.assertNotContains(resp, "grand")         # one person: no overall total line
+        self.client.force_login(self.chris)
+        self.client.post(add, {"kind": "parts", "description": "Caps", "amount": "10"})
+        resp = self.client.get(job.get_absolute_url())
+        self.assertContains(resp, "Total – Chris")
+        self.assertContains(resp, "£25.50")          # overall total
+        self.client.force_login(self.phil)
         self.client.post(reverse("repairs:cost_edit", args=[cost.pk]),
                          {"kind": "postage", "description": "Tracked 48", "amount": "4.00"})
         cost.refresh_from_db()
         self.assertEqual(cost.amount, Decimal("4.00"))
         self.client.post(reverse("repairs:cost_delete", args=[cost.pk]))
-        self.assertEqual(job.costs.count(), 1)
+        self.assertEqual(job.costs.count(), 2)  # Phil's packaging + Chris's parts
 
     def test_view_all_permission(self):
         Permission.objects.get(codename="view_all_jobs")  # exists

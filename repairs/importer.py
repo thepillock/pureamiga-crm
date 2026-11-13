@@ -157,7 +157,8 @@ def _write(data):
         stats["jobs_created"] += 1
         for kind, amount in (("bench_time", j.bench_time_cost), ("parts", j.parts_cost)):
             if amount:
-                JobCost.objects.create(job=job, kind=kind, amount=amount, created_at=j.received_at or job.created_at)
+                JobCost.objects.create(job=job, kind=kind, amount=amount, added_by=tech,
+                                       created_at=j.received_at or job.created_at)
         if j.stage != Stage.RETURNED:
             stats["jobs_not_returned"] += 1
 

@@ -7,7 +7,7 @@
   <form method="post" action="{% url 'repairs:job_assign_ref' job.pk %}">{% csrf_token %}<button class="btn ghost" title="Give this job the next free repair ref">Assign repair ref {{ next_repair_ref }}</button></form>
   {% endif %}
   <details class="menu">
-    <summary class="btn ghost">With {% if job.holder %}{% if job.holder == user %}me{% else %}{{ job.holder.get_short_name|default:job.holder.username }}{% endif %}{% else %}nobody{% endif %} ▾</summary>
+    <summary class="btn ghost" title="Who has this job now">With {% if job.holder %}{{ job.holder.get_short_name|default:job.holder.username }}{% else %}nobody{% endif %} ▾</summary>
     <div class="menu-items">
       {% for u in hand_to_users %}
       <form method="post" action="{% url 'repairs:job_hand' job.pk %}">{% csrf_token %}<input type="hidden" name="user" value="{{ u.pk }}">
@@ -31,10 +31,9 @@
 
 <section class="panel facts-panel">
   <div class="facts">
-    <div class="fact"><span class="label">Customer</span><a href="{{ job.customer.get_absolute_url }}">{{ job.customer }}</a></div>
+    <div class="fact"><span class="label">Customer</span><a href="{{ job.customer.get_absolute_url }}">{{ job.customer }}</a>{% if job.customer.email %}<br><a class="sub" href="mailto:{{ job.customer.email }}">{{ job.customer.email }}</a>{% endif %}</div>
     <div class="fact"><span class="label">Machine</span>{% include "repairs/_machine.html" with machine=job.machine link=True %}</div>
-    <div class="fact"><span class="label">Technician</span>{% if job.technician %}{{ job.technician.get_short_name|default:job.technician.username }}{% else %}—{% endif %}</div>
-    <div class="fact"><span class="label">Items received</span>
+    <div class="fact wide2"><span class="label">Items received</span>
       {% for i in job.get_items_received_display %}<span class="chip">{{ i }}</span>{% empty %}—{% endfor %}
       {% if job.accessories %}<div class="pre accessories">{{ job.accessories }}</div>{% endif %}
     </div>
@@ -57,7 +56,6 @@
 
   <section class="panel" id="costs">
     <h2>Costs</h2>
-    <p class="quote-line">Quote <strong>{% if job.quote_value is not None %}£{{ job.quote_value }}{% else %}—{% endif %}</strong>{% if job.quote_accepted_at %} · accepted {{ job.quote_accepted_at|date:"j M Y" }}{% endif %}</p>
     <table class="list compact costs">
       {% for c in costs %}
       <tr>
@@ -68,8 +66,8 @@
           <form method="post" action="{% url 'repairs:cost_delete' c.pk %}" class="inline" onsubmit="return confirm('Delete this cost?');">{% csrf_token %}<button class="link danger">Delete</button></form></td>
       </tr>
       {% empty %}<tr><td colspan="5" class="empty">No costs yet.</td></tr>{% endfor %}
-      <tr class="total"><td colspan="3">Total costs</td><td class="num">£{{ job.total_costs }}</td><td></td></tr>
-      {% if job.quote_less_costs is not None %}<tr class="total"><td colspan="3">Quote less costs</td><td class="num {% if job.quote_less_costs < 0 %}neg{% endif %}">£{{ job.quote_less_costs }}</td><td></td></tr>{% endif %}
+      {% for t in cost_totals %}<tr class="total person"><td colspan="3">Total – {{ t.name }}</td><td class="num">£{{ t.amount }}</td><td></td></tr>{% endfor %}
+      {% if cost_totals|length > 1 %}<tr class="total grand"><td colspan="3">Total</td><td class="num">£{{ job.total_costs }}</td><td></td></tr>{% endif %}
     </table>
     <details class="add-cost">
       <summary>+ Add cost</summary>

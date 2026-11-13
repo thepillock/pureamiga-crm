@@ -170,10 +170,6 @@ class RepairJob(TimeStamped):
     def total_costs(self):
         return sum((c.amount for c in self.costs.all()), Decimal("0.00"))
 
-    @property
-    def quote_less_costs(self):
-        return None if self.quote_value is None else self.quote_value - self.total_costs
-
     def hand_to(self, user, by=None, when=None):
         """Make ``user`` the current holder and record the handover."""
         if user == self.holder:

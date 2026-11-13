@@ -1,4 +1,5 @@
 from datetime import timedelta
+from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
@@ -94,6 +95,17 @@ def _name(user):
     return (user.get_short_name() or user.username) if user else ""
 
 
+def _cost_totals(job):
+    """Costs added up per person, in the order each person first added one."""
+    totals = {}
+    for c in job.costs.select_related("added_by"):
+        key = c.added_by_id
+        if key not in totals:
+            totals[key] = {"name": _name(c.added_by) or "not recorded", "amount": Decimal("0.00")}
+        totals[key]["amount"] += c.amount
+    return list(totals.values())
+
+
 def job_detail(request, pk):
     job = get_object_or_404(_jobs(request), pk=pk)
     note_form = JobNoteForm()
@@ -108,6 +120,7 @@ def job_detail(request, pk):
         "notes": job.notes.select_related("author").order_by("-created_at", "-pk"),  # newest first
         "steps": [{"stage": st, "at": getattr(job, STAGE_TIMESTAMP[st])} for st in Stage],
         "costs": job.costs.select_related("added_by"),
+        "cost_totals": _cost_totals(job),
         "cost_form": JobCostForm(),
         "history": _history(job),
         "note_form": note_form,

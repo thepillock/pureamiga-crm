@@ -211,3 +211,7 @@ details.add-cost > summary::-webkit-details-marker { display: none; }
 details.add-cost[open] > summary { margin-bottom: 4px; }
 .note-form { margin: 0 0 16px; }
 @media (max-width: 600px) { .job-head { gap: 8px; } .job-head h1 { flex-basis: 100%; } }
+.fact a.sub { font-size: .9rem; color: var(--muted); }
+.costs .total.person td { font-weight: 600; }
+.costs .total.person + .total.grand td, .costs tr:not(.total) + .total.person td { border-top: 1px solid var(--line); }
+.costs .total.grand td { font-weight: 800; }
