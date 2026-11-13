@@ -5,8 +5,13 @@
   <h1>Repair board</h1>
   <form method="get" class="search">
     <input type="search" name="q" value="{{ q }}" placeholder="Search name, serial, PA0123…">
-    {% if q %}<a href="{% url 'repairs:board' %}">Clear</a>{% endif %}
+    {% if mine %}<input type="hidden" name="mine" value="1">{% endif %}
+    {% if q %}<a href="{% url 'repairs:board' %}{% if mine %}?mine=1{% endif %}">Clear</a>{% endif %}
   </form>
+  <nav class="seg">
+    <a href="?{% if q %}q={{ q|urlencode }}{% endif %}" {% if not mine %}class="on"{% endif %}>Everyone</a>
+    <a href="?mine=1{% if q %}&amp;q={{ q|urlencode }}{% endif %}" {% if mine %}class="on"{% endif %}>With me</a>
+  </nav>
 </div>
 <div class="board">
   {% for col in columns %}
@@ -20,7 +25,8 @@
           <span class="age {% if job.days_in_stage > 14 and job.stage != 'returned' %}stale{% endif %}">{{ job.days_in_stage }}d</span></div>
         <div class="card-title">{{ job.title }}</div>
         <div class="card-meta">{% include "repairs/_machine.html" with machine=job.machine %}</div>
-        <div class="card-meta">{{ job.customer }}{% if job.technician %} · <strong>{{ job.technician.get_short_name|default:job.technician.username }}</strong>{% endif %}</div>
+        <div class="card-meta">{{ job.customer }}</div>
+        {% if job.holder %}<div class="card-with {% if job.holder == user %}me{% endif %}">With {% if job.holder == user %}you{% else %}{{ job.holder.get_short_name|default:job.holder.username }}{% endif %}</div>{% endif %}
       </a>
       <form method="post" action="{% url 'repairs:job_move' job.pk %}" class="moves">
         {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">

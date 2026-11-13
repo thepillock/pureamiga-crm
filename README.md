@@ -55,6 +55,14 @@ What the importer does:
 - Picks up the repair ref from the bench log ("Repair Ref B12", "Repair number A04", "Repair A11"). If two jobs share a ref, the later one is left blank and listed in the summary.
 - Re-running is safe: anything already imported is skipped.
 
+### Who sees what
+- **You** (superuser), and anyone given the *“Can see every job”* permission in Admin → Users, see everything.
+- **Everyone else** (e.g. Phil) sees only the jobs they **hold now or have ever held**, those jobs' customers (plus customers they created), and those customers' machines. They get no Admin or Tools. They can book in, move jobs between any stages, add log entries and costs, and edit customers.
+- Each job has a **stage** and a **holder** ("With"). Whoever books a job in holds it. Hand it over from the job page (**With → Hand over**), and every handover is logged in the job history. The board's **With me** filter shows just your jobs.
+- A job you raise and hand back in person never involves Phil, so he never sees it. If you hand it to him to post back, it appears for him.
+
+For imported jobs that all came through Phil: create Phil's account first (Admin → Users → Add; leave *Staff* and *Superuser* off). Then either choose him under *Imported jobs are with* when importing, or use **Tools → Imported jobs with nobody** for jobs already imported.
+
 ### 4. NPM+ (optional, recommended)
 Add a Proxy Host pointing at `http://<unraid-ip>:3300` (and one for `:3301` if you want test behind it too). Turn on SSL, Force SSL and HSTS, and put an access list or authentication in front of it. Over HTTPS the app marks its cookies Secure automatically; nothing to set. If you upload the Jetpack dump through NPM+, make sure its upload size limit allows a file of that size, or do the import at `http://<unraid-ip>:port` on the LAN instead.
 
@@ -113,5 +121,6 @@ Optional environment overrides: `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`, `DJ
 - Move jobs with the arrow buttons on the board, or the stage bar on the job page. Moving a job to *Being worked on* assigns it to you if it has no technician yet.
 - Search anywhere by name, email, serial, job ref (`PA0042`) or repair ref (`B55`).
 - **Job ref vs repair ref:** every job gets a job ref (`PA0042`). Jobs that turn into a repair also get a repair ref: two digits, or a letter and two digits (`36`, `A04`, `B55`). Set it on the job's Edit page, or click **Assign** on the job page to take the next free one.
+- **Costs:** add cost lines on the job page (bench time, parts, postage, packaging, other). Each line records who added it, and the job shows the total and the quote less costs.
 - **Bench log:** each entry can be edited (text and date) or deleted. If an entry has dates on their own lines (`21/2/2022`), **Split by date** turns it into one entry per date.
 - Returned jobs stay on the board for 14 days. All of them are under **All jobs**.

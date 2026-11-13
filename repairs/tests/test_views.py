@@ -19,7 +19,7 @@ class LoginRequiredTests(TestCase):
 
 class WorkflowTests(TestCase):
     def setUp(self):
-        self.user = get_user_model().objects.create_user("chris", first_name="Chris", password="a-long-test-pass")
+        self.user = get_user_model().objects.create_superuser("chris", first_name="Chris", password="a-long-test-pass")
         self.client.force_login(self.user)
         self.customer = Customer.objects.create(first_name="Ada", last_name="Lovelace", email="ada@example.com")
 

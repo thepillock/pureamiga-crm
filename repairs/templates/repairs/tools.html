@@ -21,6 +21,23 @@
   </form>
 </section>
 
+{% if unassigned_imported %}
+<section class="panel form">
+  <h2>Imported jobs with nobody</h2>
+  <p class="hint">{{ unassigned_imported }} imported job{{ unassigned_imported|pluralize }} aren't with anyone yet. If they all came through one person (e.g. Phil), give them to that person so they can see them.</p>
+  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="hand_imported">
+    {% include "repairs/_field.html" with field=hand_form.user %}
+    <div class="actions"><button class="btn">Give them all</button></div>
+  </form>
+</section>
+{% endif %}
+
+<section class="panel form">
+  <h2>Who sees what</h2>
+  <p class="hint">Superusers, and anyone with the <em>“Can see every job”</em> permission (Admin → Users), see everything.
+    Everyone else, such as Phil, sees only jobs they hold or have ever held, plus those customers. Jobs they book in are automatically theirs; hand a job to them from its page to share it.</p>
+</section>
+
 <section class="panel form">
   <h2>Backup</h2>
   <p class="hint">Downloads a copy of the whole database (customers, machines, jobs, users). It's personal data, so store it somewhere safe.

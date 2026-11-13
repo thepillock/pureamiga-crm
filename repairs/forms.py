@@ -1,7 +1,7 @@
 from django import forms
 
 from .logtext import next_repair_ref, normalise_repair_ref
-from .models import ITEMS_RECEIVED_CHOICES, Customer, JobNote, Machine, RepairJob
+from .models import ITEMS_RECEIVED_CHOICES, Customer, JobCost, JobNote, Machine, RepairJob
 
 
 def clean_repair_ref_value(value, job_pk=None):
@@ -97,7 +97,7 @@ class RepairJobForm(forms.ModelForm):
         model = RepairJob
         fields = [
             "title", "repair_ref", "machine", "technician", "work_requested", "condition_on_arrival", "items_received",
-            "accessories", "quote_value", "quote_accepted_at", "bench_time_cost", "parts_cost",
+            "accessories", "quote_value", "quote_accepted_at",
             "return_tracking",
         ]
         widgets = {
@@ -135,3 +135,19 @@ class JobNoteForm(forms.ModelForm):
         fields = ["text"]
         widgets = {"text": forms.Textarea(attrs={"rows": 3, "placeholder": "Add to the bench log…"})}
         labels = {"text": ""}
+
+
+class JobCostForm(forms.ModelForm):
+    class Meta:
+        model = JobCost
+        fields = ["kind", "description", "amount"]
+        widgets = {
+            "description": forms.TextInput(attrs={"placeholder": "e.g. Royal Mail Special Delivery"}),
+            "amount": forms.NumberInput(attrs={"step": "0.01", "min": "0", "placeholder": "0.00"}),
+        }
+
+    def clean_amount(self):
+        amount = self.cleaned_data["amount"]
+        if amount < 0:
+            raise forms.ValidationError("Amount can't be negative.")
+        return amount

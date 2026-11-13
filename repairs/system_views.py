@@ -1,5 +1,6 @@
 """First-run setup, health check and the staff Tools page (import + backups)."""
 from django import forms
+from django.contrib import messages
 from django.contrib.auth import get_user_model, login
 from django.contrib.auth.decorators import login_not_required
 from django.contrib.auth.forms import UserCreationForm
@@ -12,7 +13,8 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
 from .backup import backup_dir, make_backup
-from .importer import run_import
+from .importer import hand_imported_jobs, run_import
+from .models import RepairJob
 
 
 def _no_users_yet():
@@ -67,6 +69,14 @@ class ImportForm(forms.Form):
                                 help_text="Leave unticked for a dry run that shows what would be imported")
     include_leads = forms.BooleanField(required=False, label="Also import contacts with no repair jobs",
                                        help_text="Mostly contact-form leads and spam")
+    holder = forms.ModelChoiceField(
+        queryset=get_user_model().objects.filter(is_active=True), required=False, label="Imported jobs are with",
+        empty_label="— nobody —",
+        help_text="If they all came through one person (e.g. Phil), choose them so they can see these jobs.")
+
+
+class HandImportedForm(forms.Form):
+    user = forms.ModelChoiceField(queryset=get_user_model().objects.filter(is_active=True), label="Give them to")
 
 
 def _staff_only(request):
@@ -77,17 +87,29 @@ def _staff_only(request):
 def tools(request):
     _staff_only(request)
     form = ImportForm()
+    hand_form = HandImportedForm()
     result = None
-    if request.method == "POST":
+    if request.method == "POST" and request.POST.get("action") == "hand_imported":
+        hand_form = HandImportedForm(request.POST)
+        if hand_form.is_valid():
+            user = hand_form.cleaned_data["user"]
+            n = hand_imported_jobs(user, by=request.user)
+            messages.success(request, f"{n} imported job{'s' if n != 1 else ''} now with {user.get_short_name() or user}.")
+            return redirect("repairs:tools")
+    elif request.method == "POST":
         form = ImportForm(request.POST, request.FILES)
         if form.is_valid():
             text = form.cleaned_data["dump"].read().decode("utf-8", errors="replace")
             result = run_import(text, commit=form.cleaned_data["commit"],
-                                include_leads=form.cleaned_data["include_leads"])
+                                include_leads=form.cleaned_data["include_leads"],
+                                holder=form.cleaned_data["holder"], by=request.user)
             if result.committed:
                 form = ImportForm()
     backups = sorted(backup_dir().glob("crm-*.sqlite3"), reverse=True)[:5] if backup_dir().exists() else []
-    return render(request, "repairs/tools.html", {"form": form, "result": result, "backups": backups})
+    unassigned = RepairJob.objects.filter(legacy_jetpack_id__isnull=False, holder__isnull=True).count()
+    return render(request, "repairs/tools.html", {
+        "form": form, "hand_form": hand_form, "unassigned_imported": unassigned, "result": result, "backups": backups,
+    })
 
 
 @require_POST

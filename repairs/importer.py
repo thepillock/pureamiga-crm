@@ -8,9 +8,11 @@ from dataclasses import dataclass, field
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Q
+from django.utils import timezone
 
 from . import jetpack_import as ji
-from .models import Customer, JobNote, Machine, RepairJob, Stage, StageChange
+
+from .models import Customer, JobCost, JobNote, Machine, RepairJob, Stage, StageChange
 from .notes import IMPORTED_HEADER, split_note
 
 
@@ -38,19 +40,25 @@ class ImportResult:
             "technicians_unmatched": "Technician names with no matching user",
             "log_entries_dated": "Bench log split into dated entries",
             "repair_refs_duplicated": "Repair refs used twice (left blank on the later job)",
+            "jobs_handed": "Imported jobs now with the chosen person",
         }
         for k, v in self.stats.items():
             yield f"{labels.get(k, k)}: {v}"
 
 
-def run_import(sql_text, commit=False, include_leads=False):
-    """Parse a dump and import it. With commit=False everything is rolled back (a dry run)."""
+def run_import(sql_text, commit=False, include_leads=False, holder=None, by=None):
+    """Parse a dump and import it. With commit=False everything is rolled back (a dry run).
+
+    ``holder``: the person the imported jobs are with (e.g. Phil, if they all came through him).
+    """
     data = ji.build(sql_text, include_leads=include_leads)
     result = ImportResult(committed=False, found_customers=len(data.customers), found_jobs=len(data.jobs),
                           skipped_contacts=data.skipped_contacts, orphan_quotes=data.orphan_quotes)
     try:
         with transaction.atomic():
             result.stats = _write(data)
+            if holder is not None:
+                result.stats["jobs_handed"] = hand_imported_jobs(holder, by=by)
             if not commit:
                 raise _DryRun
     except _DryRun:
@@ -60,12 +68,27 @@ def run_import(sql_text, commit=False, include_leads=False):
     return result
 
 
+def hand_imported_jobs(user, by=None):
+    """Make ``user`` the holder of every imported job that isn't with anyone yet. Returns how many."""
+    count = 0
+    for job in RepairJob.objects.filter(legacy_jetpack_id__isnull=False, holder__isnull=True):
+        job.hand_to(user, by=by, when=job.received_at or timezone.now())
+        count += 1
+    return count
+
+
 def _technician(name, cache):
-    """Match a legacy technician name to an existing user; never creates accounts."""
+    """Match a legacy technician name to an existing user who can see all jobs; never creates accounts.
+
+    (Restricted users such as Phil handle comms and postage, so "Phil - Completed" doesn't make him the technician.)
+    """
     if not name:
         return None
     if name not in cache:
-        cache[name] = get_user_model().objects.filter(Q(username__iexact=name) | Q(first_name__iexact=name)).first()
+        can_see_all = (Q(is_superuser=True) | Q(user_permissions__codename="view_all_jobs")
+                       | Q(groups__permissions__codename="view_all_jobs"))
+        cache[name] = (get_user_model().objects.filter(can_see_all)
+                       .filter(Q(username__iexact=name) | Q(first_name__iexact=name)).distinct().first())
     return cache[name]
 
 
@@ -114,7 +137,6 @@ def _write(data):
             technician=tech, work_requested=j.work_requested, condition_on_arrival=j.condition,
             items_received=j.items_received, accessories=j.accessories,
             quote_value=j.quote_value, quote_accepted_at=j.accepted_at,
-            bench_time_cost=j.bench_time_cost, parts_cost=j.parts_cost,
             received_at=j.received_at,
         )
         if j.repair_ref and j.repair_ref not in used_refs:
@@ -133,6 +155,9 @@ def _write(data):
             job.created_at = j.received_at
         job.save()
         stats["jobs_created"] += 1
+        for kind, amount in (("bench_time", j.bench_time_cost), ("parts", j.parts_cost)):
+            if amount:
+                JobCost.objects.create(job=job, kind=kind, amount=amount, created_at=j.received_at or job.created_at)
         if j.stage != Stage.RETURNED:
             stats["jobs_not_returned"] += 1
 

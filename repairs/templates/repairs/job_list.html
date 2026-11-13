@@ -9,6 +9,7 @@
       <option value="">Any stage</option>
       {% for v, l in stages %}<option value="{{ v }}" {% if v == stage %}selected{% endif %}>{{ l }}</option>{% endfor %}
     </select>
+    <label class="check"><input type="checkbox" name="mine" value="1" {% if mine %}checked{% endif %} onchange="this.form.submit()"> With me</label>
   </form>
 </div>
 {% include "repairs/_job_table.html" with jobs=jobs show_customer=True %}

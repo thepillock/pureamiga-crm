@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Customer, JobNote, Machine, RepairJob, StageChange
+from .models import Customer, HolderChange, JobCost, JobNote, Machine, RepairJob, StageChange
 
 
 class MachineInline(admin.TabularInline):
@@ -31,6 +31,18 @@ class JobNoteInline(admin.StackedInline):
     extra = 0
 
 
+class JobCostInline(admin.TabularInline):
+    model = JobCost
+    extra = 0
+
+
+class HolderChangeInline(admin.TabularInline):
+    model = HolderChange
+    extra = 0
+    readonly_fields = ["from_user", "to_user", "changed_by", "changed_at"]
+    can_delete = False
+
+
 class StageChangeInline(admin.TabularInline):
     model = StageChange
     extra = 0
@@ -40,9 +52,9 @@ class StageChangeInline(admin.TabularInline):
 
 @admin.register(RepairJob)
 class RepairJobAdmin(admin.ModelAdmin):
-    list_display = ["ref", "title", "customer", "machine", "stage", "technician", "received_at"]
-    list_filter = ["stage", "technician", "machine__model"]
-    search_fields = ["title", "customer__first_name", "customer__last_name", "machine__serial_number"]
+    list_display = ["ref", "repair_ref", "title", "customer", "machine", "stage", "holder", "technician", "received_at"]
+    list_filter = ["stage", "holder", "technician", "machine__model"]
+    search_fields = ["title", "repair_ref", "customer__first_name", "customer__last_name", "machine__serial_number"]
     autocomplete_fields = ["customer", "machine"]
     readonly_fields = ["legacy_jetpack_id", "legacy_status", "created_at", "updated_at"]
-    inlines = [JobNoteInline, StageChangeInline]
+    inlines = [JobCostInline, JobNoteInline, StageChangeInline, HolderChangeInline]

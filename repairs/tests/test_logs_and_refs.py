@@ -66,7 +66,7 @@ class LogTextTests(SimpleTestCase):
 
 class RefAndNoteViewTests(TestCase):
     def setUp(self):
-        self.user = get_user_model().objects.create_user("chris", first_name="Chris", password="a-long-test-pass")
+        self.user = get_user_model().objects.create_superuser("chris", first_name="Chris", password="a-long-test-pass")
         self.client.force_login(self.user)
         self.customer = Customer.objects.create(first_name="Ada")
         self.machine = Machine.objects.create(customer=self.customer, model="Amiga 1200", serial_number="3456789")
@@ -76,7 +76,7 @@ class RefAndNoteViewTests(TestCase):
     def edit_data(self, **extra):
         data = {"title": "Recap", "repair_ref": "", "machine": self.machine.pk, "technician": "",
                 "work_requested": "", "condition_on_arrival": "", "accessories": "", "quote_value": "",
-                "quote_accepted_at": "", "bench_time_cost": "", "parts_cost": "", "return_tracking": ""}
+                "quote_accepted_at": "", "return_tracking": ""}
         data.update(extra)
         return data
 

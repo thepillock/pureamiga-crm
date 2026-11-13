@@ -133,3 +133,21 @@ body[class^="env-"] .top { background: #5a4500; }
 button.link.danger { color: var(--accent); }
 .note:target { background: #fff6dd; }
 @media (hover: none) { .note-actions { opacity: 1; } }
+
+/* Holder, filters, costs */
+.card-with { font-size: .78rem; color: var(--muted); margin-top: 2px; }
+.card-with.me { color: var(--returned); font-weight: 600; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: #fff; }
+.seg a { padding: 6px 12px; text-decoration: none; font-size: .9rem; }
+.seg a.on { background: var(--ink); color: #fff; }
+label.check { display: inline-flex; gap: 6px; align-items: center; white-space: nowrap; }
+label.check input { width: auto; }
+form.hand { display: inline-flex; gap: 6px; margin-left: 8px; vertical-align: middle; }
+form.hand select { width: auto; padding: 2px 6px; }
+.costs .total td { font-weight: 700; border-bottom: 0; }
+.costs .muted { color: var(--muted); font-size: .85rem; }
+.costs .neg { color: var(--accent); }
+.row-actions { white-space: nowrap; font-size: .8rem; }
+.row-actions a, .row-actions button.link { color: var(--muted); margin-left: 8px; }
+.cost-form { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.cost-form select { width: auto; } .cost-form input[name=description] { flex: 1; min-width: 160px; } .cost-form input[name=amount] { width: 110px; }

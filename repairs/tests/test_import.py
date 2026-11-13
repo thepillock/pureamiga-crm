@@ -53,7 +53,7 @@ class ImportCommandTests(TestCase):
         self.assertEqual(RepairJob.objects.count(), 0)
 
     def test_commit_imports_customers_machines_and_jobs(self):
-        chris = get_user_model().objects.create_user("chris", first_name="Chris", password="x" * 16)
+        chris = get_user_model().objects.create_superuser("chris", first_name="Chris", password="x" * 16)
         self.run_import("--commit")
 
         self.assertEqual(Customer.objects.count(), 2)  # lead without jobs skipped
@@ -67,7 +67,7 @@ class ImportCommandTests(TestCase):
         self.assertEqual(first.stage, Stage.RETURNED)
         self.assertIsNotNone(first.returned_at)
         self.assertEqual(first.items_received, ["board", "lower_shield", "accessories"])
-        self.assertEqual(first.bench_time_cost, Decimal("35.00"))
+        self.assertEqual([(c.kind, c.amount) for c in first.costs.all()], [("bench_time", Decimal("35.00"))])
         self.assertEqual(first.repair_ref, "A09")
         # Bench log split into dated entries, after the undated preamble
         entries = list(first.notes.filter(text__startswith=("Recapped")).values_list("text", flat=True))
@@ -93,3 +93,16 @@ class ImportCommandTests(TestCase):
         self.assertIn("Repair jobs already imported: 3", output)
         self.assertEqual(RepairJob.objects.count(), 3)
         self.assertEqual(Customer.objects.count(), 2)
+
+
+class ImportHolderTests(TestCase):
+    def test_restricted_user_never_matched_as_technician(self):
+        get_user_model().objects.create_user("chris", first_name="Chris", password="x" * 16)  # no view-all
+        call_command("import_jetpack", str(FIXTURE), "--commit", stdout=StringIO())
+        self.assertIsNone(RepairJob.objects.get(legacy_jetpack_id=11).technician)
+
+    def test_import_with_holder(self):
+        phil = get_user_model().objects.create_user("phil", first_name="Phil", password="x" * 16)
+        call_command("import_jetpack", str(FIXTURE), "--commit", "--holder", "phil", stdout=StringIO())
+        self.assertEqual(RepairJob.objects.filter(holder=phil).count(), 3)
+        self.assertTrue(all(j.holder_changes.filter(to_user=phil).exists() for j in RepairJob.objects.all()))

@@ -22,6 +22,12 @@
       <dt>Repair ref</dt><dd>{% if job.repair_ref %}{{ job.repair_ref }}{% else %}—{% if next_repair_ref %}
         <form method="post" action="{% url 'repairs:job_assign_ref' job.pk %}" class="inline">{% csrf_token %}<button class="btn small ghost">Assign {{ next_repair_ref }}</button></form>{% endif %}{% endif %}</dd>
       <dt>Machine</dt><dd>{% include "repairs/_machine.html" with machine=job.machine link=True %}</dd>
+      <dt>With</dt><dd>
+        {% if job.holder %}<strong>{{ job.holder.get_full_name|default:job.holder.username }}</strong>{% else %}—{% endif %}
+        <form method="post" action="{% url 'repairs:job_hand' job.pk %}" class="hand">{% csrf_token %}
+          <select name="user" aria-label="Hand to">{% for u in hand_to_users %}<option value="{{ u.pk }}">{{ u.get_short_name|default:u.username }}{% if u == user %} (me){% endif %}</option>{% endfor %}</select>
+          <button class="btn small ghost">{% if job.holder %}Hand over{% else %}Give to{% endif %}</button>
+        </form></dd>
       <dt>Technician</dt><dd>{% if job.technician %}{{ job.technician.get_full_name|default:job.technician.username }}{% else %}—{% endif %}</dd>
       <dt>Work requested</dt><dd class="pre">{{ job.work_requested|default:"—" }}</dd>
       <dt>Condition on arrival</dt><dd class="pre">{{ job.condition_on_arrival|default:"—" }}</dd>
@@ -33,7 +39,6 @@
     <h2>Money &amp; dates</h2>
     <dl>
       <dt>Quote</dt><dd>{% if job.quote_value is not None %}£{{ job.quote_value }}{% else %}—{% endif %}{% if job.quote_accepted_at %} · accepted {{ job.quote_accepted_at|date:"j M Y" }}{% endif %}</dd>
-      <dt>Bench time / parts</dt><dd>{% if job.bench_time_cost is not None %}£{{ job.bench_time_cost }}{% else %}—{% endif %} / {% if job.parts_cost is not None %}£{{ job.parts_cost }}{% else %}—{% endif %}</dd>
       <dt>Received</dt><dd>{{ job.received_at|date:"j M Y H:i"|default:"—" }}</dd>
       <dt>Work started</dt><dd>{{ job.started_at|date:"j M Y H:i"|default:"—" }}</dd>
       <dt>Testing</dt><dd>{{ job.testing_at|date:"j M Y H:i"|default:"—" }}</dd>
@@ -42,11 +47,31 @@
     {% if history %}
     <h3>Stage history</h3>
     <ul class="history">{% for h in history %}
-      <li>{{ h.changed_at|date:"j M Y H:i" }} — {% if h.from_stage %}{{ h.get_from_stage_display }} → {% endif %}{{ h.get_to_stage_display }}{% if h.changed_by %} ({{ h.changed_by.username }}){% endif %}</li>
+      <li>{{ h.when|date:"j M Y H:i" }} — {{ h.text }}{% if h.who %} ({{ h.who.get_short_name|default:h.who.username }}){% endif %}</li>
     {% endfor %}</ul>
     {% endif %}
   </section>
 </div>
+
+<section class="panel" id="costs">
+  <h2>Costs</h2>
+  <table class="list compact costs">
+    {% for c in costs %}
+    <tr>
+      <td>{{ c.get_kind_display }}</td><td>{{ c.description }}</td>
+      <td class="muted">{% if c.added_by %}{{ c.added_by.get_short_name|default:c.added_by.username }}{% endif %}</td>
+      <td class="num">£{{ c.amount }}</td>
+      <td class="num row-actions"><a href="{% url 'repairs:cost_edit' c.pk %}">Edit</a>
+        <form method="post" action="{% url 'repairs:cost_delete' c.pk %}" class="inline" onsubmit="return confirm('Delete this cost?');">{% csrf_token %}<button class="link danger">Delete</button></form></td>
+    </tr>
+    {% empty %}<tr><td colspan="5" class="empty">No costs yet.</td></tr>{% endfor %}
+    <tr class="total"><td colspan="3">Total costs</td><td class="num">£{{ job.total_costs }}</td><td></td></tr>
+    {% if job.quote_less_costs is not None %}<tr class="total"><td colspan="3">Quote £{{ job.quote_value }} less costs</td><td class="num {% if job.quote_less_costs < 0 %}neg{% endif %}">£{{ job.quote_less_costs }}</td><td></td></tr>{% endif %}
+  </table>
+  <form method="post" action="{% url 'repairs:cost_add' job.pk %}" class="cost-form">{% csrf_token %}
+    {{ cost_form.kind }} {{ cost_form.description }} {{ cost_form.amount }} <button class="btn small">Add cost</button>
+  </form>
+</section>
 
 <section class="panel">
   <h2>Bench log</h2>

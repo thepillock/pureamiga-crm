@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.conf import settings
 from django.core.validators import RegexValidator
 from django.db import models
@@ -67,6 +69,10 @@ class Customer(TimeStamped):
     country = models.CharField(max_length=100, blank=True, default="United Kingdom")
     notes = models.TextField(blank=True)
     legacy_jetpack_id = models.PositiveIntegerField(null=True, blank=True, unique=True, editable=False)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, editable=False,
+        related_name="customers_created",
+    )
 
     class Meta:
         ordering = ["last_name", "first_name"]
@@ -128,6 +134,10 @@ class RepairJob(TimeStamped):
     technician = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="repair_jobs",
     )
+    holder = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="held_jobs",
+        verbose_name="With", help_text="Who has the job now",
+    )
 
     # Intake
     work_requested = models.TextField(blank=True)
@@ -138,8 +148,6 @@ class RepairJob(TimeStamped):
     # Money
     quote_value = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
     quote_accepted_at = models.DateTimeField(null=True, blank=True)
-    bench_time_cost = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
-    parts_cost = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
 
     # When it entered each stage
     received_at = models.DateTimeField(null=True, blank=True)
@@ -153,9 +161,28 @@ class RepairJob(TimeStamped):
 
     class Meta:
         ordering = ["-received_at", "-pk"]
+        permissions = [("view_all_jobs", "Can see every job, not just ones they have held")]
 
     def __str__(self):
         return f"{self.ref} {self.title}"
+
+    @property
+    def total_costs(self):
+        return sum((c.amount for c in self.costs.all()), Decimal("0.00"))
+
+    @property
+    def quote_less_costs(self):
+        return None if self.quote_value is None else self.quote_value - self.total_costs
+
+    def hand_to(self, user, by=None, when=None):
+        """Make ``user`` the current holder and record the handover."""
+        if user == self.holder:
+            return
+        when = when or timezone.now()
+        old = self.holder
+        self.holder = user
+        self.save(update_fields=["holder", "updated_at"])
+        HolderChange.objects.create(job=self, from_user=old, to_user=user, changed_by=by, changed_at=when)
 
     @property
     def ref(self):
@@ -211,6 +238,48 @@ class StageChange(models.Model):
 
     def __str__(self):
         return f"{self.job.ref}: {self.get_from_stage_display()} → {self.get_to_stage_display()}"
+
+
+class HolderChange(models.Model):
+    """A job being handed from one person to another."""
+    job = models.ForeignKey(RepairJob, on_delete=models.CASCADE, related_name="holder_changes")
+    from_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                  related_name="+")
+    to_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                related_name="+")
+    changed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                   related_name="+")
+    changed_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["changed_at"]
+
+    def __str__(self):
+        return f"{self.job.ref}: {self.from_user} → {self.to_user}"
+
+
+class CostKind(models.TextChoices):
+    BENCH_TIME = "bench_time", "Bench time"
+    PARTS = "parts", "Parts"
+    POSTAGE = "postage", "Postage"
+    PACKAGING = "packaging", "Packaging"
+    OTHER = "other", "Other"
+
+
+class JobCost(models.Model):
+    job = models.ForeignKey(RepairJob, on_delete=models.CASCADE, related_name="costs")
+    kind = models.CharField("Type", max_length=20, choices=CostKind.choices, default=CostKind.PARTS)
+    description = models.CharField(max_length=200, blank=True)
+    amount = models.DecimalField(max_digits=8, decimal_places=2)
+    added_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name="+")
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["created_at", "pk"]
+
+    def __str__(self):
+        return f"{self.job.ref} {self.get_kind_display()} £{self.amount}"
 
 
 class JobNote(models.Model):
