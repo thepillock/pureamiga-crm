@@ -1,24 +1,11 @@
-# For building and running locally from source. On Unraid, use the pre-built images from
-# ghcr.io instead (see README "Deploying on Unraid").
 services:
   crm:
-    build: .
-    image: pureamiga-crm:local
+    image: ghcr.io/thepillock/pureamiga-crm:latest   # or :test; replace with `build: .` to build locally
     container_name: pureamiga-crm
     restart: unless-stopped
-    env_file: .env
-    # No "ports:" on purpose - only NPM+ (on the same Docker network) can reach it.
-    networks: [proxy]
+    ports:
+      - "3300:3300"
     volumes:
-      - ./data:/data              # SQLite database + backups
-      - ./import:/import:ro       # drop the WordPress dump here for the one-off import
-    read_only: true
-    tmpfs: [/tmp]
-    security_opt: ["no-new-privileges:true"]
-    cap_drop: [ALL]
-    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETUID, SETGID]
-
-networks:
-  proxy:
-    external: true
-    name: ${PROXY_NETWORK:-proxynet}
+      - ./data:/data          # on Unraid: /mnt/user/appdata/pureamiga-crm:/data
+    environment:
+      - TZ=Europe/London

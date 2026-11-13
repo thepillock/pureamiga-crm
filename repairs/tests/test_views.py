@@ -13,6 +13,7 @@ class LoginRequiredTests(TestCase):
             self.assertIn("/accounts/login/", resp["Location"])
 
     def test_login_page_renders(self):
+        get_user_model().objects.create_user("someone", password="a-long-test-pass")
         self.assertContains(self.client.get("/accounts/login/"), "Log in")
 
 

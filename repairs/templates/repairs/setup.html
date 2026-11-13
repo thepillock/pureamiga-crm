@@ -1,0 +1,12 @@
+{% extends "repairs/base.html" %}
+{% block title %}Set up{% endblock %}
+{% block content %}
+<form method="post" class="panel form login">
+  <h1>Welcome</h1>
+  <p>No accounts exist yet. Create the first one. It will be an administrator, and can add other staff later.</p>
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  {% for field in form %}{% include "repairs/_field.html" %}{% endfor %}
+  <div class="actions"><button class="btn">Create account</button></div>
+</form>
+{% endblock %}

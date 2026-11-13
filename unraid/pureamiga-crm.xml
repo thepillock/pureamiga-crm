@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>pureamiga-crm</Name>
+  <Repository>ghcr.io/thepillock/pureamiga-crm:latest</Repository>
+  <Registry>https://github.com/thepillock/pureamiga-crm/pkgs/container/pureamiga-crm</Registry>
+  <Network>bridge</Network>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/thepillock/pureamiga-crm</Support>
+  <Project>https://github.com/thepillock/pureamiga-crm</Project>
+  <Overview>Pure Amiga repairs CRM - LIVE track (updates when a v* release tag is pushed).</Overview>
+  <Category>Productivity:</Category>
+  <WebUI>http://[IP]:[PORT:3300]/</WebUI>
+  <ExtraParams>--restart unless-stopped --read-only --tmpfs /tmp --security-opt no-new-privileges:true --cap-drop ALL --cap-add CHOWN --cap-add DAC_OVERRIDE --cap-add FOWNER --cap-add SETUID --cap-add SETGID</ExtraParams>
+  <Config Name="Web UI port" Target="3300" Default="3300" Mode="tcp" Type="Port" Display="always" Required="true">3300</Config>
+  <Config Name="Data" Target="/data" Default="/mnt/user/appdata/pureamiga-crm" Mode="rw" Type="Path" Display="always" Required="true">/mnt/user/appdata/pureamiga-crm</Config>
+  <Config Name="TZ" Target="TZ" Default="Europe/London" Type="Variable" Display="always" Required="false">Europe/London</Config>
+</Container>

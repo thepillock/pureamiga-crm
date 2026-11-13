@@ -1,9 +1,13 @@
-"""Settings for the Pure Amiga repairs CRM. Everything deployment-specific comes from environment variables."""
+"""Settings for the Pure Amiga repairs CRM.
+
+Nothing needs configuring: the secret key is generated into the data folder on first start,
+any hostname is accepted, and cookies are marked Secure automatically when served over HTTPS.
+The environment variables below are optional overrides.
+"""
 import os
+import secrets
 import sys
 from pathlib import Path
-
-from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = Path(os.environ.get("CRM_DATA_DIR", BASE_DIR / "data"))
@@ -17,20 +21,37 @@ def env_bool(name, default=False):
     return os.environ.get(name, str(default)).lower() in ("1", "true", "yes", "on")
 
 
+def _secret_key():
+    """Use DJANGO_SECRET_KEY if given, otherwise a random key kept in the data folder."""
+    if os.environ.get("DJANGO_SECRET_KEY"):
+        return os.environ["DJANGO_SECRET_KEY"]
+    path = DATA_DIR / "secret_key"
+    try:
+        return path.read_text().strip()
+    except FileNotFoundError:
+        pass
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    key = secrets.token_urlsafe(50)
+    try:
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError:  # another process got there first
+        return path.read_text().strip()
+    with os.fdopen(fd, "w") as f:
+        f.write(key)
+    return key
+
+
 DEBUG = env_bool("DJANGO_DEBUG", False)
+SECRET_KEY = _secret_key()
 
 # Shown in the footer; set at image build time by CI.
 APP_VERSION = os.environ.get("APP_VERSION", "dev")
-# Set to e.g. "test" on the test container: shows a banner so it can't be mistaken for the live system.
-CRM_ENVIRONMENT = os.environ.get("CRM_ENVIRONMENT", "").strip()
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
-if not SECRET_KEY:
-    if DEBUG:
-        SECRET_KEY = "dev-only-insecure-key"
-    else:
-        raise ImproperlyConfigured("Set DJANGO_SECRET_KEY (see .env.example).")
+APP_CHANNEL = os.environ.get("APP_CHANNEL", "dev")
+# Banner label. Test images show "test" automatically; set CRM_ENVIRONMENT to override (or to "" to hide).
+CRM_ENVIRONMENT = os.environ.get("CRM_ENVIRONMENT", "test" if APP_CHANNEL == "test" else "").strip()
 
-ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
+# Reached via NPM+ or directly on the LAN by IP, so accept any Host. Narrow with DJANGO_ALLOWED_HOSTS if wanted.
+ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "*")
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
 
 INSTALLED_APPS = [
@@ -45,12 +66,14 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Must wrap the session/CSRF middleware so it sees the cookies they set.
+    "repairs.middleware.SecureCookiesOnHttps",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    # Every page needs a login unless explicitly exempted (only the login page is).
+    # Every page needs a login unless explicitly exempted (login, first-run setup, /healthz).
     "django.contrib.auth.middleware.LoginRequiredMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -116,12 +139,10 @@ if "test" in sys.argv[1:2]:
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # --- Security -----------------------------------------------------------------
-# NPM+ terminates TLS and passes X-Forwarded-Proto; trust it (the container is only reachable via NPM+).
+# NPM+ terminates TLS and passes X-Forwarded-Proto. Session/CSRF cookies are marked Secure
+# per request when it's HTTPS (repairs.middleware.SecureCookiesOnHttps), so plain-HTTP LAN access still works.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = False
-_https = env_bool("DJANGO_HTTPS", True)
-SESSION_COOKIE_SECURE = _https
-CSRF_COOKIE_SECURE = _https
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_AGE = 60 * 60 * 12  # 12 hours
@@ -130,6 +151,9 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
 X_FRAME_OPTIONS = "DENY"
 # HSTS is left to NPM+ so it's set in one place.
+
+# Jetpack dumps can be tens of MB; uploads over 2.5 MB spool to /tmp.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 
 LOGGING = {
     "version": 1,

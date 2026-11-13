@@ -1,0 +1,39 @@
+{% extends "repairs/base.html" %}
+{% block title %}Tools{% endblock %}
+{% block content %}
+<div class="bar"><h1>Tools</h1></div>
+
+<section class="panel form">
+  <h2>Import from Jetpack CRM</h2>
+  <p class="hint">Upload the phpMyAdmin export of the WordPress database. Run a dry run first. Re-importing is safe: anything already imported is skipped.
+    Create the technician accounts (Admin → Users, with a first name such as "Chris") <em>before</em> importing, so old jobs are assigned to them.</p>
+  {% if result %}
+  <div class="msg {% if not result.committed %}warning{% endif %}">
+    <strong>{% if result.committed %}Imported.{% else %}Dry run - nothing was saved.{% endif %}</strong>
+    <ul>{% for line in result.lines %}<li>{{ line }}</li>{% endfor %}</ul>
+    {% if not result.committed %}Happy with that? Choose the file again, tick “Import for real” and run it.{% endif %}
+  </div>
+  {% endif %}
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% for field in form %}{% include "repairs/_field.html" %}{% endfor %}
+    <div class="actions"><button class="btn">Run import</button></div>
+  </form>
+</section>
+
+<section class="panel form">
+  <h2>Backup</h2>
+  <p class="hint">Downloads a copy of the whole database (customers, machines, jobs, users). It's personal data, so store it somewhere safe.
+    A copy is also kept on the server in the data folder under <code>backups/</code> (last 14).</p>
+  <form method="post" action="{% url 'repairs:download_backup' %}">{% csrf_token %}<button class="btn">Download backup now</button></form>
+  {% if backups %}
+  <h3>Recent backups on the server</h3>
+  <ul class="history">{% for b in backups %}<li><code>{{ b.name }}</code></li>{% endfor %}</ul>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h2>About</h2>
+  <dl><dt>Version</dt><dd>{{ app_version }}</dd><dt>Environment</dt><dd>{{ crm_environment|default:"live" }}</dd></dl>
+</section>
+{% endblock %}

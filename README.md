@@ -9,112 +9,80 @@ A small Django app for tracking machines through the repair process:
 - **Customers → Machines → Repair jobs.** Each machine has its own repair history, so a machine that comes back is booked in against the same record.
 - **Booking in** records the work requested, condition on arrival, an items-received checklist (board, shields, case, keyboard, floppy, PSU, box, accessories), accessories and the quote.
 - **Bench log**: timestamped notes on each job. Every stage change is recorded with who made it and when.
+- **Tools** (admins): import from the old Jetpack CRM, and download a backup.
 - **Admin** (`/admin/`) gives full editing of everything, plus user management.
-- **Importer** for the old Jetpack CRM data in WordPress.
 
-Staff-only: every page needs a login.
-
----
-
-## Test and live versions
-
-GitHub Actions runs the tests on every push. If they pass, it publishes a Docker image to GHCR:
-
-| You do | Image built | Runs on Unraid as |
-|---|---|---|
-| Push to `main` | `ghcr.io/thepillock/pureamiga-crm:test` | **pureamiga-crm-test**, with a yellow TEST banner and its own database |
-| Tag a release `vX.Y.Z` | `ghcr.io/thepillock/pureamiga-crm:latest` (also `:X.Y.Z`) | **pureamiga-crm**: the live system |
-
-The version is shown in the footer of every page (`test-abc1234` or `v1.2.0`).
-
-**To release:** once something on test is good, go to GitHub → Releases → *Draft a new release* → create the tag `v1.0.0` (then `v1.0.1`, `v1.1.0`, …) → *Publish*. About two minutes later `:latest` is ready, and you update the live container in Unraid. Tags with a hyphen (`v1.1.0-rc1`) get their own image tag but never `:latest`.
-
-**To roll back live:** edit the container and change the repository tag from `:latest` to the previous version, e.g. `:1.0.0`.
+Every page needs a login.
 
 ---
 
-## Deploying on Unraid (one-time setup)
+## Deploying on Unraid
 
-### 1. Docker network
-Both containers sit on the same custom Docker network as NPM+, and publish no ports. Check with `docker network ls`. If NPM+ isn't already on a custom network:
+Nothing to configure: no secrets, no hostnames, no custom Docker network. The app creates its own secret key in its data folder on first start.
 
-```sh
-docker network create proxynet
-```
-
-Then edit the NPM+ container and set its **Network Type** to `proxynet`. The templates assume this name; change it in the template if yours differs.
-
-### 2. Add the two containers
-Copy the templates from this repo's `unraid/` folder onto the flash drive:
+### 1. Add the containers
+On Unraid, copy the templates onto the flash drive:
 
 ```sh
 cd /boot/config/plugins/dockerMan/templates-user/
-wget https://raw.githubusercontent.com/thepillock/pureamiga-crm/main/unraid/my-pureamiga-crm-test.xml
-wget https://raw.githubusercontent.com/thepillock/pureamiga-crm/main/unraid/my-pureamiga-crm.xml
+wget -O my-pureamiga-crm-test.xml https://raw.githubusercontent.com/thepillock/pureamiga-crm/main/unraid/pureamiga-crm-test.xml
+wget -O my-pureamiga-crm.xml      https://raw.githubusercontent.com/thepillock/pureamiga-crm/main/unraid/pureamiga-crm.xml
 ```
 
-Then go to Docker → **Add Container** → pick the template from the *Template* dropdown → fill in:
-- **Secret key**: a different one for each container. Generate with `openssl rand -base64 48`.
-- **Hostname** and **Trusted origin**: e.g. `crm-test.yourdomain.net` and `https://crm-test.yourdomain.net`.
+Docker → **Add Container** → pick **pureamiga-crm-test** from the *Template* dropdown → **Apply**. Repeat for **pureamiga-crm**.
 
-Do this once for **pureamiga-crm-test** and once for **pureamiga-crm**. Each container keeps its own data under `/mnt/user/appdata/<name>`. The extra parameters in the template make the container filesystem read-only, drop Linux capabilities and block privilege escalation.
-
-### 3. NPM+ (LAN only)
-Create an **Access List** "LAN only": allow `192.168.x.0/24` (add `100.64.0.0/10` if you use Tailscale), deny `all`.
-
-Then add a **Proxy Host** for each container:
-
-| Domain | Forward to | Access list | SSL |
+| Container | Image | Port | Data |
 |---|---|---|---|
-| `crm-test.yourdomain.net` | `http://pureamiga-crm-test:8000` | LAN only | Let's Encrypt, Force SSL, HSTS |
-| `crm.yourdomain.net` | `http://pureamiga-crm:8000` | LAN only | Let's Encrypt, Force SSL, HSTS |
+| pureamiga-crm-test | `ghcr.io/thepillock/pureamiga-crm:test` | 3301 | `/mnt/user/appdata/pureamiga-crm-test` |
+| pureamiga-crm | `ghcr.io/thepillock/pureamiga-crm:latest` | 3300 | `/mnt/user/appdata/pureamiga-crm` |
 
-Point both hostnames at the Unraid box in local DNS. If they aren't reachable from the internet, use the DNS challenge for the certificate. For access away from home, use Tailscale/WireGuard rather than port forwarding.
+The test image shows a yellow-and-black **TEST** banner, and every page shows its version in the footer. Unraid's health column uses the built-in `/healthz` check.
 
-### 4. Create logins
-Run this for each container:
+### 2. First login
+Click the container's icon → **WebUI** (or browse to `http://<unraid-ip>:3301`). With no accounts yet, it asks you to create the first one, which becomes an administrator. Add other staff in **Admin → Users**. Give technicians a first name (e.g. "Chris"): it's shown on the board and used by the importer.
 
-```sh
-docker exec -it -u 99:100 pureamiga-crm python manage.py createsuperuser
-docker exec -it -u 99:100 pureamiga-crm-test python manage.py createsuperuser
-```
+The setup page only exists until the first account is created, so do this straight after starting each container.
 
-To add more staff, go to `/admin/` → Users. Give technicians a first name (e.g. "Chris"): it's shown on the board and used by the importer.
-
-### 5. Import the old Jetpack CRM data
-Try it on **test** first. Create the technician logins before importing, so jobs marked "Chris - …" get assigned to them.
-
-```sh
-cp /path/to/localhost.sql /mnt/user/appdata/pureamiga-crm-test/import.sql
-docker exec -u 99:100 pureamiga-crm-test python manage.py import_jetpack /data/import.sql            # dry run
-docker exec -u 99:100 pureamiga-crm-test python manage.py import_jetpack /data/import.sql --commit   # for real
-rm /mnt/user/appdata/pureamiga-crm-test/import.sql
-```
-
-When you're happy with how it looks, do the same with `pureamiga-crm`.
+### 3. Import the old Jetpack CRM data
+Do this on **test** first. Create the technician accounts first, so jobs marked "Chris - …" get assigned to them. Then **Tools → Import from Jetpack CRM**: upload the phpMyAdmin `.sql` export and run it as a dry run. If the summary looks right, upload again with **Import for real** ticked. When you're happy with how test looks, do the same on live.
 
 What the importer does:
-- Imports the **contacts that have repair jobs**. Contact-form leads with no jobs (mostly spam) are skipped; `--include-leads` brings them in anyway.
+- Imports the contacts that have repair jobs. Contact-form leads with no jobs (mostly spam) are skipped unless you tick the box.
 - Turns each quote into a repair job: title, value, accepted date, costs, work requested, condition, accessories and the parts-sent checklist.
 - Creates a machine per job from make/model + serial. Model names are normalised ("A1200" → Amiga 1200), and a customer's jobs with the same serial share one machine.
 - Splits "Chris - In test" into stage + technician. Jobs with no status, or "Completed", go to **Returned**.
 - Copies the HTML bench log and quote notes into the bench log, and keeps the old status text on each job.
-- Safe to re-run: anything already imported is skipped.
+- Re-running is safe: anything already imported is skipped.
 
-### 6. Updates
-- **Test**: after you push to `main`, wait for the green tick on GitHub, then click *Update* on pureamiga-crm-test in the Docker tab. You can also let the *Auto Update Applications* plugin update the test container automatically. Database migrations run on start.
-- **Live**: after publishing a release, click *Update* on pureamiga-crm. Take a backup first (below).
+### 4. NPM+ (optional, recommended)
+Add a Proxy Host pointing at `http://<unraid-ip>:3300` (and one for `:3301` if you want test behind it too). Turn on SSL, Force SSL and HSTS, and put an access list or authentication in front of it. Over HTTPS the app marks its cookies Secure automatically; nothing to set. If you upload the Jetpack dump through NPM+, make sure its upload size limit allows a file of that size, or do the import at `http://<unraid-ip>:port` on the LAN instead.
 
-### 7. Backups
-Each container's data is a single SQLite file in its appdata folder. Take a consistent snapshot while it's running:
+---
+
+## Test and live
+
+GitHub Actions runs the tests on every push. If they pass, it builds the image:
+
+| You do | Image | Container |
+|---|---|---|
+| Push to `main` | `:test` | pureamiga-crm-test |
+| Publish a release `vX.Y.Z` | `:latest` (also `:X.Y.Z`, `:X.Y`) | pureamiga-crm |
+
+**To release:** on GitHub, go to Releases → *Draft a new release* → create tag `v1.0.0` → *Publish*. About two minutes later, Unraid's Docker tab shows *update ready* on pureamiga-crm. Database migrations run automatically on start.
+
+**To roll back live:** edit the container and change `:latest` to the previous version, e.g. `:1.0.0`.
+
+## Backups
+
+**Tools → Download backup now** gives you a copy of the whole database, and also keeps one in the data folder under `backups/` (last 14). For scheduled backups, the Appdata Backup plugin covers `/mnt/user/appdata/pureamiga-crm`. Or run this nightly with User Scripts:
 
 ```sh
-docker exec -u 99:100 pureamiga-crm python manage.py backup_db   # → appdata/pureamiga-crm/backups/, keeps 14
+docker exec -u 99:100 pureamiga-crm python manage.py backup_db
 ```
 
-Schedule that nightly with the **User Scripts** plugin, and copy `backups/` off the server (Appdata Backup plugin, rclone, …). It's customer personal data, so keep the off-site copy encrypted.
+It's customer personal data, so keep off-site copies encrypted.
 
-To refresh **test** with a copy of live data:
+To copy live data into test, stop test, copy a backup over it, and start it again:
 
 ```sh
 docker stop pureamiga-crm-test
@@ -130,15 +98,13 @@ docker start pureamiga-crm-test
 ```sh
 python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt
-export DJANGO_DEBUG=1 DJANGO_HTTPS=0
-python manage.py migrate && python manage.py createsuperuser
-python manage.py runserver
-python manage.py test          # what CI runs
+DJANGO_DEBUG=1 python manage.py runserver     # data goes in ./data
+python manage.py test                         # what CI runs
 ```
 
 Model changes need a migration: `python manage.py makemigrations`. CI fails if you forget.
 
-`docker-compose.yml` builds and runs the image from source locally. Copy `.env.example` to `.env` first.
+Optional environment overrides: `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`, `DJANGO_CSRF_TRUSTED_ORIGINS`, `CRM_ENVIRONMENT` (banner text; set it empty to hide the banner), `PUID`/`PGID`, `PORT`.
 
 ## Day to day
 

@@ -84,6 +84,6 @@ class ImportCommandTests(TestCase):
     def test_reimport_is_idempotent(self):
         self.run_import("--commit")
         output = self.run_import("--commit")
-        self.assertIn("jobs_existing: 3", output)
+        self.assertIn("Repair jobs already imported: 3", output)
         self.assertEqual(RepairJob.objects.count(), 3)
         self.assertEqual(Customer.objects.count(), 2)
