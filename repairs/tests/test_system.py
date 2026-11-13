@@ -4,7 +4,7 @@ from pathlib import Path
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase, override_settings
+from django.test import TestCase, TransactionTestCase, override_settings
 
 from repairs.models import Customer, RepairJob
 
@@ -89,7 +89,15 @@ class ToolsTests(TestCase):
         self.assertEqual(RepairJob.objects.count(), 3)
         self.assertEqual(Customer.objects.count(), 2)
 
+
+
+class BackupTests(TransactionTestCase):
+    """No wrapping transaction here: SQLite's backup waits on an open write transaction,
+    which TestCase always has (real requests don't)."""
+
     def test_backup_download(self):
+        admin = User.objects.create_user("chris", password="a-long-test-pass", is_staff=True)
+        self.client.force_login(admin)
         with tempfile.TemporaryDirectory() as tmp, override_settings(DATA_DIR=tmp):
             resp = self.client.post("/tools/backup/")
             self.assertEqual(resp.status_code, 200)

@@ -30,6 +30,7 @@ jobs:
       - name: Migrations are up to date
         run: python manage.py makemigrations --check --dry-run
       - name: Tests
+        timeout-minutes: 5
         run: python manage.py test --verbosity 2
       - name: Static files build
         run: python manage.py collectstatic --noinput

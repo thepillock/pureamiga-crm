@@ -16,6 +16,8 @@ def make_backup(directory=None, keep=14):
     directory = Path(directory or backup_dir())
     directory.mkdir(parents=True, exist_ok=True)
     target = directory / f"crm-{datetime.now():%Y%m%d-%H%M%S}.sqlite3"
+    if connection.in_atomic_block:
+        raise RuntimeError("Can't back up inside a database transaction")
     connection.ensure_connection()  # back up through Django's own sqlite3 connection
     dst = sqlite3.connect(target)
     try:
