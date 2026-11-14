@@ -56,7 +56,7 @@ class BookInForm(forms.ModelForm):
         model = RepairJob
         fields = [
             "machine", "title", "work_requested", "condition_on_arrival", "items_received", "accessories",
-            "quote_value", "technician",
+            "technician",
         ]
         widgets = {
             "work_requested": forms.Textarea(attrs={"rows": 3}),
@@ -97,14 +97,13 @@ class RepairJobForm(forms.ModelForm):
         model = RepairJob
         fields = [
             "title", "repair_ref", "machine", "technician", "work_requested", "condition_on_arrival", "items_received",
-            "accessories", "quote_value", "quote_accepted_at",
+            "accessories",
             "return_tracking",
         ]
         widgets = {
             "work_requested": forms.Textarea(attrs={"rows": 3}),
             "condition_on_arrival": forms.Textarea(attrs={"rows": 3}),
             "accessories": forms.Textarea(attrs={"rows": 2}),
-            "quote_accepted_at": forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
         }
 
     def __init__(self, *args, **kwargs):

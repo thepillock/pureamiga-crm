@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -73,7 +73,8 @@ def job_list(request):
     if mine:
         jobs = jobs.filter(holder=request.user)
     return render(request, "repairs/job_list.html", {
-        "jobs": jobs[:500], "q": q, "stage": stage, "mine": mine, "stages": Stage.choices,
+        "jobs": jobs.annotate(cost_total=Sum("costs__amount"))[:500], "q": q, "stage": stage, "mine": mine,
+        "stages": Stage.choices,
     })
 
 
@@ -195,7 +196,7 @@ def customer_detail(request, pk):
     return render(request, "repairs/customer_detail.html", {
         "customer": customer,
         "machines": customer.machines.annotate(job_count=Count("jobs", filter=Q(jobs__in=jobs))),
-        "jobs": jobs.select_related("machine", "technician", "holder"),
+        "jobs": jobs.select_related("machine", "technician", "holder").annotate(cost_total=Sum("costs__amount")),
     })
 
 
@@ -222,7 +223,8 @@ def machine_detail(request, pk):
     machine = get_object_or_404(visible_machines(request.user).select_related("customer"), pk=pk)
     return render(request, "repairs/machine_detail.html", {
         "machine": machine,
-        "jobs": visible_jobs(request.user, machine.jobs.all()).select_related("technician", "holder"),
+        "jobs": visible_jobs(request.user, machine.jobs.all()).select_related("technician", "holder")
+                .annotate(cost_total=Sum("costs__amount")),
     })
 
 

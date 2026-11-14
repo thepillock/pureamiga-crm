@@ -1,5 +1,5 @@
 <table class="list">
-  <thead><tr><th>Ref</th><th>Repair ref</th><th>Job</th>{% if show_customer %}<th>Customer</th>{% endif %}{% if not hide_machine %}<th>Machine</th>{% endif %}<th>Stage</th><th>With</th><th>Tech</th><th>Received</th><th class="num">Quote</th></tr></thead>
+  <thead><tr><th>Ref</th><th>Repair ref</th><th>Job</th>{% if show_customer %}<th>Customer</th>{% endif %}{% if not hide_machine %}<th>Machine</th>{% endif %}<th>Stage</th><th>With</th><th>Tech</th><th>Received</th><th class="num">Costs</th></tr></thead>
   <tbody>
   {% for job in jobs %}
   <tr>
@@ -12,7 +12,7 @@
     <td>{% if job.holder %}{{ job.holder.get_short_name|default:job.holder.username }}{% endif %}</td>
     <td>{% if job.technician %}{{ job.technician.get_short_name|default:job.technician.username }}{% endif %}</td>
     <td>{{ job.received_at|date:"j M Y" }}</td>
-    <td class="num">{% if job.quote_value is not None %}£{{ job.quote_value }}{% endif %}</td>
+    <td class="num">{% if job.cost_total %}£{{ job.cost_total|floatformat:2 }}{% endif %}</td>
   </tr>
   {% empty %}<tr><td colspan="10" class="empty">No jobs.</td></tr>{% endfor %}
   </tbody>

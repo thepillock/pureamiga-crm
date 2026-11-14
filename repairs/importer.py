@@ -56,7 +56,7 @@ def run_import(sql_text, commit=False, include_leads=False, holder=None, by=None
                           skipped_contacts=data.skipped_contacts, orphan_quotes=data.orphan_quotes)
     try:
         with transaction.atomic():
-            result.stats = _write(data)
+            result.stats = _write(data, by=by)
             if holder is not None:
                 result.stats["jobs_handed"] = hand_imported_jobs(holder, by=by)
             if not commit:
@@ -92,7 +92,22 @@ def _technician(name, cache):
     return cache[name]
 
 
-def _write(data):
+def _import_costs(job, j, added_by):
+    """Itemised bench-time/parts costs if the job has them; otherwise its quoted price as one cost line.
+
+    (In the Jetpack data the quote is the total charge: where both exist, quote = bench + parts.)
+    """
+    when = j.accepted_at or j.received_at or job.created_at
+    itemised = [(kind, amount) for kind, amount in (("bench_time", j.bench_time_cost), ("parts", j.parts_cost))
+                if amount]
+    if not itemised and j.quote_value:
+        itemised = [("other", j.quote_value)]
+    for kind, amount in itemised:
+        JobCost.objects.create(job=job, kind=kind, amount=amount, added_by=added_by, created_at=when,
+                               description="Quoted price (from Jetpack CRM)" if kind == "other" else "")
+
+
+def _write(data, by=None):
     tech_cache = {}
     used_refs = set(RepairJob.objects.exclude(repair_ref="").values_list("repair_ref", flat=True))
     stats = dict(customers_created=0, customers_existing=0, machines_created=0,
@@ -136,7 +151,6 @@ def _write(data):
             customer=customer, machine=machine, title=j.title or "(untitled)", stage=j.stage,
             technician=tech, work_requested=j.work_requested, condition_on_arrival=j.condition,
             items_received=j.items_received, accessories=j.accessories,
-            quote_value=j.quote_value, quote_accepted_at=j.accepted_at,
             received_at=j.received_at,
         )
         if j.repair_ref and j.repair_ref not in used_refs:
@@ -155,10 +169,7 @@ def _write(data):
             job.created_at = j.received_at
         job.save()
         stats["jobs_created"] += 1
-        for kind, amount in (("bench_time", j.bench_time_cost), ("parts", j.parts_cost)):
-            if amount:
-                JobCost.objects.create(job=job, kind=kind, amount=amount, added_by=tech,
-                                       created_at=j.received_at or job.created_at)
+        _import_costs(job, j, added_by=tech or by)
         if j.stage != Stage.RETURNED:
             stats["jobs_not_returned"] += 1
 

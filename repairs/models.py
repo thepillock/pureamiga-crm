@@ -146,8 +146,6 @@ class RepairJob(TimeStamped):
     accessories = models.TextField(blank=True, help_text="Accelerators, drives, cables etc. that came with it")
 
     # Money
-    quote_value = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
-    quote_accepted_at = models.DateTimeField(null=True, blank=True)
 
     # When it entered each stage
     received_at = models.DateTimeField(null=True, blank=True)

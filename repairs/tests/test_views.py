@@ -27,7 +27,7 @@ class WorkflowTests(TestCase):
         data = {
             "machine": "", "new_model": "Amiga 1200", "new_description": "Rev 1D4", "new_serial": "SN1",
             "title": "Premium recap", "work_requested": "Recap", "condition_on_arrival": "Good",
-            "items_received": ["board", "case"], "accessories": "", "quote_value": "54.00", "technician": "",
+            "items_received": ["board", "case"], "accessories": "", "technician": "",
         }
         data.update(extra)
         return self.client.post(reverse("repairs:job_book_in", args=[self.customer.pk]), data)

@@ -75,8 +75,7 @@ class RefAndNoteViewTests(TestCase):
 
     def edit_data(self, **extra):
         data = {"title": "Recap", "repair_ref": "", "machine": self.machine.pk, "technician": "",
-                "work_requested": "", "condition_on_arrival": "", "accessories": "", "quote_value": "",
-                "quote_accepted_at": "", "return_tracking": ""}
+                "work_requested": "", "condition_on_arrival": "", "accessories": "", "return_tracking": ""}
         data.update(extra)
         return data
 
