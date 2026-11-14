@@ -233,3 +233,15 @@ class QuoteMigrationTests(TransactionTestCase):
                          [("other", Decimal("54.00"), boss.pk)])
         self.assertEqual(Cost.objects.filter(job_id=itemised.pk).count(), 1)
         self.assertEqual(Cost.objects.count(), 2)  # native job's quote isn't turned into a cost
+
+
+class ExtraChecksKeptTests(TestCase):
+    def test_saving_checks_keeps_imported_extras(self):
+        chris = User.objects.create_superuser("chris", password="a-long-test-pass")
+        self.client.force_login(chris)
+        c = Customer.objects.create(first_name="Ada")
+        job = RepairJob.objects.create(customer=c, machine=Machine.objects.create(customer=c, model="Amiga 600"),
+                                       title="x", checks={"_extra": {"PCMCIA": {"in": "Y"}}})
+        self.client.post(reverse("repairs:checks_save", args=[job.pk]), {"power_in": "Y"})
+        job.refresh_from_db()
+        self.assertEqual(job.checks, {"_extra": {"PCMCIA": {"in": "Y"}}, "power": {"in": "Y"}})

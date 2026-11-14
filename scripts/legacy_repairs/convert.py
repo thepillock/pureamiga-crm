@@ -1,6 +1,6 @@
 """One-off: turn the old repairs spreadsheet + finances sheet into a JSON file for `manage.py load_legacy_repairs`.
 
-    python scripts/legacy_repairs/convert.py REPAIRS.xlsx FINANCES.xlsx OUT.json [--pdfs DIR]
+    python scripts/legacy_repairs/convert.py REPAIRS.xlsx FINANCES.xlsx OUT.json [--sheets DIR]
 
 Runs on a workstation (needs openpyxl); the output JSON is copied to the CRM's data folder and loaded there.
 No customer data lives in this repo - only this script.
@@ -195,7 +195,7 @@ def main():
     ap.add_argument("repairs")
     ap.add_argument("finances")
     ap.add_argument("out")
-    ap.add_argument("--pdfs", help="Folder of PDF job sheets (optional)")
+    ap.add_argument("--sheets", help="Folder of per-repair Excel job sheets ('Computer Repair B23.xlsx')")
     args = ap.parse_args()
 
     report = defaultdict(list)
@@ -208,13 +208,14 @@ def main():
             job["costs"], job["payments"], job["money_notes"] = f["costs"], f["payments"], f["money_notes"]
     report["finance refs with no repair row"] = sorted(set(finance) - refs)
 
-    if args.pdfs:
-        from pdf_sheets import read_sheets  # noqa: PLC0415 - optional, added when the PDFs arrive
-        read_sheets(Path(args.pdfs), jobs, report)
+    if args.sheets:
+        from job_sheets import read_sheets  # noqa: PLC0415
+        read_sheets(Path(args.sheets), jobs, report)
 
     Path(args.out).write_text(json.dumps({"version": 1, "jobs": jobs}, indent=1, ensure_ascii=False))
     print(f"{len(jobs)} repairs written to {args.out}")
-    print(f"  with costs: {sum(1 for j in jobs if j['costs'])}, with payments: {sum(1 for j in jobs if j['payments'])}")
+    print(f"  with costs: {sum(1 for j in jobs if j['costs'])}, with payments: {sum(1 for j in jobs if j['payments'])}, "
+          f"with checks: {sum(1 for j in jobs if j['checks'])}")
     for key, value in report.items():
         if value:
             print(f"  {key}: {value}")

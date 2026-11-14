@@ -68,6 +68,7 @@ class LegacyLoadTests(TestCase):
                                        title="Jetpack job", repair_ref="A02", legacy_jetpack_id=7, stage=Stage.RETURNED,
                                        returned_at=timezone.now(), condition_on_arrival="Already known")
         job.notes.create(text="original log")
+        job.stage_changes.create(from_stage="", to_stage=Stage.RETURNED, changed_at=job.returned_at)
         Payment.objects.create(job=job, amount=Decimal("25"), reference=JETPACK_QUOTE_REF)
         data = {"jobs": [item("A02", customer="Someone Else", checks={"power": {"in": "Y", "out": "Y"}},
                               payments=[{"amount": 37.0, "date": "2021-06-01"}],
@@ -79,6 +80,7 @@ class LegacyLoadTests(TestCase):
         self.assertEqual(job.customer_summary, "Recapped. Soak tested.")
         self.assertEqual(job.checks, {"power": {"in": "Y", "out": "Y"}})
         self.assertEqual(timezone.localtime(job.returned_at).date().isoformat(), "2023-05-01")  # real date replaces guess
+        self.assertEqual(timezone.localtime(job.stage_changes.get().changed_at).date().isoformat(), "2023-05-01")
         self.assertEqual(list(job.notes.values_list("text", flat=True)), ["original log"])
         self.assertEqual(list(job.payments.values_list("amount", "reference")), [(Decimal("37.00"), FINANCE_REF)])
         self.assertEqual(job.costs.get().amount, Decimal("6.00"))

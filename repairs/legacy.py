@@ -146,6 +146,10 @@ def _enrich(job, item, user, result, from_jetpack):
         job.machine.save(update_fields=["serial_number", "updated_at"])
     if changed:
         job.save(update_fields=changed + ["updated_at"])
+    if "returned_at" in changed:
+        # Keep the history in step: the imported "Returned" entry carried the old guessed date
+        job.stage_changes.filter(to_stage=Stage.RETURNED).exclude(changed_at=returned).filter(
+            from_stage="").update(changed_at=returned)
 
     # Costs: finance parts costs, unless the job already has parts costs of its own (e.g. itemised in Jetpack)
     finance_costs = item.get("costs", [])

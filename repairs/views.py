@@ -353,7 +353,8 @@ def summary_generate(request, pk):
 @require_POST
 def checks_save(request, pk):
     job = get_object_or_404(visible_jobs(request.user), pk=pk)
-    checks = {}
+    known = {key for key, _label in CHECKS}
+    checks = {k: v for k, v in (job.checks or {}).items() if k not in known}  # keep e.g. imported extra checks
     for key, _label in CHECKS:
         entry = {}
         for col in ("in", "out"):
