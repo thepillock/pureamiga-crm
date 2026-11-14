@@ -16,25 +16,42 @@ API_URL = "https://api.anthropic.com/v1/messages"
 API_VERSION = "2023-06-01"
 TIMEOUT_SECONDS = 90
 
-SYSTEM_PROMPT = """You write the customer summary that goes on the printed job sheet returned with a repaired \
+SYSTEM_PROMPT = """You write the "Work Completed" box on the printed job sheet returned with a repaired \
 retro computer (mostly Commodore Amiga) from the Pure Amiga repair service in the UK.
 
-You are given the technician's work log and some job details. Write a short, plain statement for the \
-customer: three or four paragraphs, in this order:
-1. What issues were found (on arrival and during diagnosis).
-2. What was done to fix them.
-3. Parts used (components replaced or fitted). Leave this paragraph out if no parts were used.
-4. What testing was completed and the outcome.
+You are given the technician's work log, the job details and the in/out checks. Write a short summary for \
+the customer covering, in roughly this order: the issues found, what was done about each, parts replaced, \
+and the testing done.
+
+Style - match the example below:
+- Short and to the point. Usually one or two short sentences per issue: the fault, the fix, the result.
+- Plain technical language an Amiga owner understands; name components (e.g. "U28 1488 buffer", "Denise").
+- Sentence fragments are fine, e.g. "Replaced CIA, machine now boots." or "Video issues, Denise chip \
+faulty - replaced and now working OK."
+- Short paragraphs separated by blank lines. No headings, bullets, markdown, greeting or sign-off.
+- Typically 40 to 130 words. Shorter is better when there was little to do.
+- British English.
 
 Rules:
-- British English. Clear, friendly and professional; less detailed than the log, but keep the specifics a \
-knowledgeable owner would care about (e.g. chip or component names, what was recapped).
-- Only state what the log and details support. Never invent faults, work, parts or tests. If something is \
-unclear, leave it out.
-- Past tense, written for the customer. Use "we" if you need a subject; never "I".
-- No greeting, sign-off, headings, bullet points or markdown: just the paragraphs, separated by blank lines.
-- Do not mention prices, costs, postage, packaging, internal handovers, or anyone's name.
-- Ignore lines that are clearly internal notes (e.g. about the old CRM system or job admin)."""
+- Only state what the log, details and checks support. Never invent faults, work, parts or tests.
+- Do not mention prices, costs, postage, packaging, internal handovers, the old CRM system, or anyone's name.
+
+Example of the style (a different job):
+Ultrasonic clean, replaced caps with premium polymer ones. Made good some tracks and pads around video area.
+
+Still "crunchy" sound and audio filter stuck on - also diagnostic tests show serial port not working.
+
+Replaced U28 1488 buffer which controls both serial port and audio filter - serial now OK, filter working \
+but sound still poor quality.
+
+Low AVREF voltage to op-amp. Replaced op-amp and passive components providing voltage drop due to \
+corrosion, cleaned in this area.
+
+Sound now OK.
+
+External floppy drive not working - broken ferrite bead on 5V line, replaced and tested OK
+
+Soak test whole board 12 hours"""
 
 
 class SummaryError(Exception):
@@ -57,6 +74,10 @@ def build_prompt(job):
         lines.append("Items received: " + ", ".join(items))
     if job.accessories:
         lines.append(f"Accessories received: {job.accessories}")
+    checks = [f"{label}: in {in_ or '-'}, out {out or '-'}" + (f" ({note})" if note else "")
+              for _key, label, in_, out, note in job.check_rows() if in_ or out or note]
+    if checks:
+        lines.append("Checks (Y = OK):\n" + "\n".join(checks))
     parts = [c.description for c in job.costs.filter(kind="parts") if c.description]
     if parts:
         lines.append("Parts recorded: " + "; ".join(parts))
@@ -80,7 +101,7 @@ def build_prompt(job):
 def _call_api(prompt):
     body = json.dumps({
         "model": settings.SUMMARY_MODEL,
-        "max_tokens": 1000,
+        "max_tokens": 700,
         "system": SYSTEM_PROMPT,
         "messages": [{"role": "user", "content": prompt}],
     }).encode()

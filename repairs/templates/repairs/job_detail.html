@@ -15,6 +15,7 @@
       {% endfor %}
     </div>
   </details>
+  <a class="btn ghost" href="{% url 'repairs:job_sheet_pdf' job.pk %}" target="_blank" title="Printable repair sheet">Job sheet PDF</a>
   <a class="btn ghost" href="{% url 'repairs:job_edit' job.pk %}">Edit</a>
 </div>
 
@@ -96,6 +97,33 @@
   {% empty %}<p class="empty">No entries yet.</p>{% endfor %}
 </section>
 
+<section class="panel" id="checks">
+  <div class="panel-head"><h2>Checks</h2><span class="hint">In on arrival, Out before it goes back - printed on the job sheet</span></div>
+  <form method="post" action="{% url 'repairs:checks_save' job.pk %}">{% csrf_token %}
+    <div class="checks-cols">
+    {% for half in check_halves %}
+    <table class="checks">
+      <thead><tr><th></th>
+        <th>In <button type="button" class="link fill" data-col="in" title="Set every empty In to Y">all Y</button></th>
+        <th>Out <button type="button" class="link fill" data-col="out" title="Set every empty Out to Y">all Y</button></th>
+        <th>Notes</th></tr></thead>
+      <tbody>
+      {% for key, label, in_, out, note in half %}
+      <tr>
+        <th>{{ label }}</th>
+        <td><select name="{{ key }}_in" data-col="in" class="res {{ in_|slugify }}"><option value=""></option>{% for r in check_results %}<option {% if r == in_ %}selected{% endif %}>{{ r }}</option>{% endfor %}</select></td>
+        <td><select name="{{ key }}_out" data-col="out" class="res {{ out|slugify }}"><option value=""></option>{% for r in check_results %}<option {% if r == out %}selected{% endif %}>{{ r }}</option>{% endfor %}</select></td>
+        <td><input name="{{ key }}_note" value="{{ note }}" maxlength="200"></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endfor %}
+    </div>
+    <div class="actions"><button class="btn">Save checks</button></div>
+  </form>
+</section>
+
 <section class="panel" id="summary">
   <div class="panel-head">
     <h2>Customer summary</h2>
@@ -107,7 +135,7 @@
     {% endif %}
   </div>
   <form method="post" action="{% url 'repairs:summary_save' job.pk %}">{% csrf_token %}
-    <textarea name="customer_summary" rows="10" placeholder="What was found, what was done, parts used and testing - this goes on the printed job sheet.">{{ job.customer_summary }}</textarea>
+    <textarea name="customer_summary" rows="8" class="autogrow" placeholder="What was found, what was done, parts used and testing - this goes on the printed job sheet.">{{ job.customer_summary }}</textarea>
     <div class="actions summary-actions">
       <button class="btn">Save summary</button>
       <span class="hint">
@@ -118,6 +146,19 @@
   </form>
 </section>
 <script>
+  // Checks: colour the result, and "all Y" fills the empty ones in a column.
+  const tint = s => { s.className = "res " + s.value.toLowerCase().replace("/", ""); };
+  document.querySelectorAll("table.checks select").forEach(s => s.addEventListener("change", () => tint(s)));
+  document.querySelectorAll("button.fill").forEach(b => b.addEventListener("click", () => {
+    document.querySelectorAll(`table.checks select[data-col="${b.dataset.col}"]`).forEach(s => {
+      if (!s.value) { s.value = "Y"; tint(s); }
+    });
+  }));
+  // Summary box grows to fit its text.
+  document.querySelectorAll("textarea.autogrow").forEach(t => {
+    const fit = () => { t.style.height = "auto"; t.style.height = (t.scrollHeight + 4) + "px"; };
+    t.addEventListener("input", fit); fit();
+  });
   // Show progress while Claude writes (it takes a few seconds).
   document.querySelectorAll("button[data-busy]").forEach(b => b.form.addEventListener("submit", e => {
     if (e.defaultPrevented) return; b.disabled = true; b.textContent = b.dataset.busy;

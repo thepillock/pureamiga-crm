@@ -223,3 +223,20 @@ details.add-cost[open] > summary { margin-bottom: 4px; }
 #summary textarea { line-height: 1.55; }
 .summary-actions { margin-top: 10px; }
 .summary-actions .hint { margin: 0; }
+
+/* Checks */
+table.checks { border-collapse: collapse; width: 100%; max-width: 760px; }
+table.checks th, table.checks td { padding: 2px 6px 2px 0; text-align: left; font-size: .9rem; }
+table.checks tbody th { font-weight: 400; color: var(--muted); white-space: nowrap; width: 1%; padding-right: 14px; }
+table.checks thead th { font-size: .8rem; color: var(--muted); font-weight: 600; }
+table.checks select { width: 82px; padding: 3px 4px; }
+table.checks td:nth-child(2), table.checks td:nth-child(3) { width: 1%; }
+table.checks input { padding: 3px 6px; }
+table.checks select.fault { background: #fbe9e7; border-color: #f2c1bb; color: var(--accent); font-weight: 600; }
+table.checks select.y { background: #e6f2ea; border-color: #b9dcc5; }
+table.checks select.na { color: var(--muted); }
+button.fill { font-size: .75rem; font-weight: 400; margin-left: 4px; color: var(--muted); }
+.checks-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 32px; }
+table.checks { max-width: none; }
+textarea.autogrow { overflow: hidden; resize: vertical; min-height: 120px; }
+@media (max-width: 900px) { .checks-cols { grid-template-columns: 1fr; } .checks-cols table + table thead { display: none; } }

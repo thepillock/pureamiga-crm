@@ -48,6 +48,17 @@ repair_ref_validator = RegexValidator(
     r"^[A-Z]?\d{2}$", "Two digits, or a letter and two digits, e.g. 36 or B55.")
 
 
+# The checks on the printed job sheet, in order.
+CHECKS = [
+    ("power", "Power"), ("boots", "Boots"), ("rgb_video", "RGB Video"), ("comp_video", "Comp Video"),
+    ("audio", "Audio"), ("int_fdd", "Int FDD"), ("ext_fdd", "Ext FDD Port"), ("serial", "Serial Port"),
+    ("parallel", "Parallel Port"), ("mouse", "Mouse Port"), ("joystick", "Joystick Port"), ("ide", "IDE Port"),
+    ("cd32_drive", "CD32 Drive"), ("keyboard", "Keyboard"), ("memory", "Memory"), ("cias", "CIAs"),
+    ("soak_test", "Soak Test"), ("expansion", "Expansion"),
+]
+CHECK_RESULTS = ["Y", "Fault", "n/a"]
+
+
 class TimeStamped(models.Model):
     created_at = models.DateTimeField(default=timezone.now, editable=False)
     updated_at = models.DateTimeField(auto_now=True)
@@ -154,6 +165,7 @@ class RepairJob(TimeStamped):
     returned_at = models.DateTimeField(null=True, blank=True)
 
     return_tracking = models.CharField("Return tracking no.", max_length=100, blank=True)
+    checks = models.JSONField(default=dict, blank=True, help_text="Job sheet checks: {key: {in, out, note}}")
     customer_summary = models.TextField(
         blank=True, help_text="Plain-English summary of the work for the customer; printed on the job sheet")
     customer_summary_generated = models.TextField(blank=True, editable=False)  # last draft from Claude
@@ -167,6 +179,27 @@ class RepairJob(TimeStamped):
 
     def __str__(self):
         return f"{self.ref} {self.title}"
+
+    def check_rows(self):
+        """[(key, label, in, out, note)] for every check on the job sheet."""
+        rows = []
+        for key, label in CHECKS:
+            c = (self.checks or {}).get(key, {})
+            rows.append((key, label, c.get("in", ""), c.get("out", ""), c.get("note", "")))
+        return rows
+
+    @property
+    def machine_make_model(self):
+        """('Amiga', 'A600') style split for the job sheet."""
+        m = self.machine
+        if m.model.startswith("Amiga "):
+            rest = m.model[len("Amiga "):]
+            make, model = "Amiga", (rest if rest.startswith("CD") else f"A{rest}")
+        elif m.model.startswith("Commodore "):
+            make, model = "Commodore", m.model[len("Commodore "):]
+        else:
+            return "", m.description or m.model
+        return make, f"{model} ({m.description})" if m.description else model
 
     @property
     def summary_edited(self):

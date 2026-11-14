@@ -70,7 +70,7 @@ class ApiCallTests(SummaryTestBase):
         body = json.loads(request.data)
         self.assertEqual(body["model"], "claude-test")
         self.assertEqual(body["messages"], [{"role": "user", "content": "hello"}])
-        self.assertIn("customer summary", body["system"])
+        self.assertIn("Work Completed", body["system"])
 
     def test_http_error_is_explained(self):
         err = urllib.error.HTTPError("u", 401, "Unauthorized", {},

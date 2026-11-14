@@ -4,6 +4,7 @@ from decimal import Decimal
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Q, Sum
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -12,7 +13,8 @@ from .access import (visible_costs, visible_customers, visible_jobs, visible_mac
                      visible_notes)
 from .forms import (BookInForm, CustomerForm, JobCostForm, JobNoteEditForm, JobNoteForm, MachineForm,
                     RepairJobForm, suggested_repair_ref)
-from .models import STAGE_TIMESTAMP, JobNote, Stage, StageChange
+from . import jobsheet
+from .models import CHECK_RESULTS, CHECKS, STAGE_TIMESTAMP, JobNote, Stage, StageChange
 from .notes import split_note
 from .summary import SummaryError, generate_summary, is_enabled as summary_enabled
 
@@ -130,6 +132,8 @@ def job_detail(request, pk):
         "hand_to_users": User.objects.filter(is_active=True).exclude(pk=job.holder_id).order_by("first_name", "username"),
         "next_repair_ref": "" if job.repair_ref else suggested_repair_ref(),
         "summary_enabled": summary_enabled(),
+        "check_results": CHECK_RESULTS,
+        "check_halves": [job.check_rows()[:9], job.check_rows()[9:]],
     })
 
 
@@ -340,3 +344,34 @@ def summary_generate(request, pk):
     except SummaryError as e:
         messages.error(request, f"Couldn't generate a summary: {e}")
     return redirect(f"{job.get_absolute_url()}#summary")
+
+
+# --- Checks and the printed job sheet ------------------------------------------
+
+@require_POST
+def checks_save(request, pk):
+    job = get_object_or_404(visible_jobs(request.user), pk=pk)
+    checks = {}
+    for key, _label in CHECKS:
+        entry = {}
+        for col in ("in", "out"):
+            value = request.POST.get(f"{key}_{col}", "")
+            if value in CHECK_RESULTS:
+                entry[col] = value
+        note = request.POST.get(f"{key}_note", "").strip()[:200]
+        if note:
+            entry["note"] = note
+        if entry:
+            checks[key] = entry
+    job.checks = checks
+    job.save(update_fields=["checks", "updated_at"])
+    messages.success(request, "Checks saved.")
+    return redirect(f"{job.get_absolute_url()}#checks")
+
+
+def job_sheet_pdf(request, pk):
+    job = get_object_or_404(visible_jobs(request.user).select_related("customer", "machine"), pk=pk)
+    filename = f"Repair_{job.repair_ref or job.ref}.pdf"
+    response = HttpResponse(jobsheet.render(job), content_type="application/pdf")
+    response["Content-Disposition"] = f'inline; filename="{filename}"'
+    return response

@@ -127,5 +127,7 @@ Optional environment overrides: `ANTHROPIC_API_KEY`, `CRM_SUMMARY_MODEL`, `DJANG
 - Search anywhere by name, email, serial, job ref (`PA0042`) or repair ref (`B55`).
 - **Job ref vs repair ref:** every job gets a job ref (`PA0042`). Jobs that turn into a repair also get a repair ref: two digits, or a letter and two digits (`36`, `A04`, `B55`). Set it on the job's Edit page, or click **Assign** on the job page to take the next free one.
 - **Costs:** add cost lines on the job page (bench time, parts, postage, packaging, other). Each line records who added it, and the job shows the total and the quote less costs.
+- **Checks:** the In/Out checks from the job sheet (power, boots, video, audio, ports, …) are on the job page. **all Y** fills the empty ones in a column.
+- **Job sheet PDF** (button at the top of a job) produces the printed customer repair sheet: customer, dates, repair ref, make/model/serial, parts sent, checks, work requested, condition, and the customer summary as *Work Completed*.
 - **Bench log:** each entry can be edited (text and date) or deleted. If an entry has dates on their own lines (`21/2/2022`), **Split by date** turns it into one entry per date.
 - Returned jobs stay on the board for 14 days. All of them are under **All jobs**.
