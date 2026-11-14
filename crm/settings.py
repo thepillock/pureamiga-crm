@@ -50,6 +50,11 @@ APP_CHANNEL = os.environ.get("APP_CHANNEL", "dev")
 # Banner label. Test images show "test" automatically; set CRM_ENVIRONMENT to override (or to "" to hide).
 CRM_ENVIRONMENT = os.environ.get("CRM_ENVIRONMENT", "test" if APP_CHANNEL == "test" else "").strip()
 
+# Optional: Anthropic API key for generating customer summaries from the work log.
+# Without it the "Generate" button is hidden. Only the work log, job title, machine and parts are sent.
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+SUMMARY_MODEL = os.environ.get("CRM_SUMMARY_MODEL", "claude-sonnet-5-5").strip()
+
 # Reached via NPM+ or directly on the LAN by IP, so accept any Host. Narrow with DJANGO_ALLOWED_HOSTS if wanted.
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "*")
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")

@@ -30,4 +30,4 @@ HEALTHCHECK --interval=60s --timeout=5s --start-period=30s \
   CMD python -c "import urllib.request,os; urllib.request.urlopen('http://127.0.0.1:%s/healthz' % os.environ.get('PORT','3300'))" || exit 1
 
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["sh", "-c", "exec gunicorn crm.wsgi:application --bind 0.0.0.0:${PORT} --workers 2 --threads 4 --worker-tmp-dir /tmp --access-logfile -"]
+CMD ["sh", "-c", "exec gunicorn crm.wsgi:application --bind 0.0.0.0:${PORT} --workers 2 --threads 4 --worker-tmp-dir /tmp --timeout 120 --access-logfile -"]

@@ -154,6 +154,10 @@ class RepairJob(TimeStamped):
     returned_at = models.DateTimeField(null=True, blank=True)
 
     return_tracking = models.CharField("Return tracking no.", max_length=100, blank=True)
+    customer_summary = models.TextField(
+        blank=True, help_text="Plain-English summary of the work for the customer; printed on the job sheet")
+    customer_summary_generated = models.TextField(blank=True, editable=False)  # last draft from Claude
+    customer_summary_generated_at = models.DateTimeField(null=True, blank=True, editable=False)
     legacy_status = models.CharField(max_length=100, blank=True, editable=False)
     legacy_jetpack_id = models.PositiveIntegerField(null=True, blank=True, unique=True, editable=False)
 
@@ -163,6 +167,11 @@ class RepairJob(TimeStamped):
 
     def __str__(self):
         return f"{self.ref} {self.title}"
+
+    @property
+    def summary_edited(self):
+        """True if the summary has been changed by hand since it was last generated."""
+        return bool(self.customer_summary.strip()) and self.customer_summary != self.customer_summary_generated
 
     @property
     def total_costs(self):

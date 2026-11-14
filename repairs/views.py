@@ -14,6 +14,7 @@ from .forms import (BookInForm, CustomerForm, JobCostForm, JobNoteEditForm, JobN
                     RepairJobForm, suggested_repair_ref)
 from .models import STAGE_TIMESTAMP, JobNote, Stage, StageChange
 from .notes import split_note
+from .summary import SummaryError, generate_summary, is_enabled as summary_enabled
 
 RETURNED_ON_BOARD_DAYS = 14
 
@@ -128,6 +129,7 @@ def job_detail(request, pk):
         "stages": Stage,
         "hand_to_users": User.objects.filter(is_active=True).exclude(pk=job.holder_id).order_by("first_name", "username"),
         "next_repair_ref": "" if job.repair_ref else suggested_repair_ref(),
+        "summary_enabled": summary_enabled(),
     })
 
 
@@ -316,3 +318,25 @@ def cost_delete(request, pk):
     job = cost.job
     cost.delete()
     return redirect(f"{job.get_absolute_url()}#costs")
+
+
+# --- Customer summary ----------------------------------------------------------
+
+@require_POST
+def summary_save(request, pk):
+    job = get_object_or_404(visible_jobs(request.user), pk=pk)
+    job.customer_summary = request.POST.get("customer_summary", "").replace("\r\n", "\n").strip()
+    job.save(update_fields=["customer_summary", "updated_at"])
+    messages.success(request, "Customer summary saved.")
+    return redirect(f"{job.get_absolute_url()}#summary")
+
+
+@require_POST
+def summary_generate(request, pk):
+    job = get_object_or_404(visible_jobs(request.user), pk=pk)
+    try:
+        generate_summary(job)
+        messages.success(request, "New summary drafted from the work log. Check it over and edit as needed.")
+    except SummaryError as e:
+        messages.error(request, f"Couldn't generate a summary: {e}")
+    return redirect(f"{job.get_absolute_url()}#summary")

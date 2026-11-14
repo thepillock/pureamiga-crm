@@ -95,4 +95,32 @@
   </div>
   {% empty %}<p class="empty">No entries yet.</p>{% endfor %}
 </section>
+
+<section class="panel" id="summary">
+  <div class="panel-head">
+    <h2>Customer summary</h2>
+    {% if summary_enabled %}
+    <form method="post" action="{% url 'repairs:summary_generate' job.pk %}" class="gen-form"
+          {% if job.summary_edited %}onsubmit="return confirm('Replace your edited summary with a new draft from the work log?');"{% endif %}>
+      {% csrf_token %}<button class="btn ghost" data-busy="Writing…">✨ {% if job.customer_summary %}Regenerate{% else %}Generate{% endif %} from work log</button>
+    </form>
+    {% endif %}
+  </div>
+  <form method="post" action="{% url 'repairs:summary_save' job.pk %}">{% csrf_token %}
+    <textarea name="customer_summary" rows="10" placeholder="What was found, what was done, parts used and testing - this goes on the printed job sheet.">{{ job.customer_summary }}</textarea>
+    <div class="actions summary-actions">
+      <button class="btn">Save summary</button>
+      <span class="hint">
+        {% if job.customer_summary_generated_at %}Drafted {{ job.customer_summary_generated_at|date:"j M Y H:i" }}{% if job.summary_edited %} · edited since{% endif %}.{% endif %}
+        {% if not summary_enabled %}Add an Anthropic API key in the container settings to draft this automatically.{% endif %}
+      </span>
+    </div>
+  </form>
+</section>
+<script>
+  // Show progress while Claude writes (it takes a few seconds).
+  document.querySelectorAll("button[data-busy]").forEach(b => b.form.addEventListener("submit", e => {
+    if (e.defaultPrevented) return; b.disabled = true; b.textContent = b.dataset.busy;
+  }));
+</script>
 {% endblock %}

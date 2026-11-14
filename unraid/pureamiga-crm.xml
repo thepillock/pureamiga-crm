@@ -14,5 +14,6 @@
   <ExtraParams>--restart unless-stopped --read-only --tmpfs /tmp --security-opt no-new-privileges:true --cap-drop ALL --cap-add CHOWN --cap-add DAC_OVERRIDE --cap-add FOWNER --cap-add SETUID --cap-add SETGID</ExtraParams>
   <Config Name="Web UI port" Target="3300" Default="3300" Mode="tcp" Type="Port" Display="always" Required="true">3300</Config>
   <Config Name="Data" Target="/data" Default="/mnt/user/appdata/pureamiga-crm" Mode="rw" Type="Path" Display="always" Required="true">/mnt/user/appdata/pureamiga-crm</Config>
+  <Config Name="Anthropic API key" Target="ANTHROPIC_API_KEY" Default="" Mode="" Description="Optional. Enables drafting the customer summary from the work log with Claude. Get one at console.anthropic.com" Type="Variable" Display="always" Required="false" Mask="true"></Config>
   <Config Name="TZ" Target="TZ" Default="Europe/London" Type="Variable" Display="always" Required="false">Europe/London</Config>
 </Container>

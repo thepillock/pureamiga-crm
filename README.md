@@ -63,6 +63,11 @@ What the importer does:
 
 For imported jobs that all came through Phil: create Phil's account first (Admin → Users → Add; leave *Staff* and *Superuser* off). Then either choose him under *Imported jobs are with* when importing, or use **Tools → Imported jobs with nobody** for jobs already imported.
 
+### Customer summary (optional)
+The job page has a **Customer summary** box under the work log, for the printed job sheet. To have Claude draft it from the work log, create an API key at [console.anthropic.com](https://console.anthropic.com) and paste it into the container's **Anthropic API key** setting. Each draft costs a fraction of a penny. Without a key the box still works; you just write it yourself.
+
+**Generate from work log** writes a fresh draft every time you press it: issues found, work done, parts used, testing. Edit it and **Save summary**. If you've edited it, you're asked before it's replaced. Claude is sent only the job title, machine, work requested, condition, items received, part descriptions and the work log: never the customer's name or contact details, and no prices. The model can be changed with `CRM_SUMMARY_MODEL` (default `claude-sonnet-5-5`).
+
 ### 4. NPM+ (optional, recommended)
 Add a Proxy Host pointing at `http://<unraid-ip>:3300` (and one for `:3301` if you want test behind it too). Turn on SSL, Force SSL and HSTS, and put an access list or authentication in front of it. Over HTTPS the app marks its cookies Secure automatically; nothing to set. If you upload the Jetpack dump through NPM+, make sure its upload size limit allows a file of that size, or do the import at `http://<unraid-ip>:port` on the LAN instead.
 
@@ -113,7 +118,7 @@ python manage.py test                         # what CI runs
 
 Model changes need a migration: `python manage.py makemigrations`. CI fails if you forget.
 
-Optional environment overrides: `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`, `DJANGO_CSRF_TRUSTED_ORIGINS`, `CRM_ENVIRONMENT` (banner text; set it empty to hide the banner), `PUID`/`PGID`, `PORT`.
+Optional environment overrides: `ANTHROPIC_API_KEY`, `CRM_SUMMARY_MODEL`, `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`, `DJANGO_CSRF_TRUSTED_ORIGINS`, `CRM_ENVIRONMENT` (banner text; set it empty to hide the banner), `PUID`/`PGID`, `PORT`.
 
 ## Day to day
 
