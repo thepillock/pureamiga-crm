@@ -97,8 +97,13 @@
   {% empty %}<p class="empty">No entries yet.</p>{% endfor %}
 </section>
 
-<section class="panel" id="checks">
-  <div class="panel-head"><h2>Checks</h2><span class="hint">In on arrival, Out before it goes back - printed on the job sheet</span></div>
+<section class="panel tabbed">
+  <nav class="tabs" role="tablist">
+    <button type="button" role="tab" data-tab="checks">Checks{% if job.checks %} <span class="tab-dot" title="Some checks filled in"></span>{% endif %}</button>
+    <button type="button" role="tab" data-tab="summary">Customer summary{% if job.customer_summary %} <span class="tab-dot" title="Summary written"></span>{% endif %}</button>
+  </nav>
+<div class="tab-pane" id="checks" role="tabpanel">
+  <p class="hint tab-hint">In on arrival, Out before it goes back - printed on the job sheet.</p>
   <form method="post" action="{% url 'repairs:checks_save' job.pk %}">{% csrf_token %}
     <div class="checks-cols">
     {% for half in check_halves %}
@@ -122,11 +127,11 @@
     </div>
     <div class="actions"><button class="btn">Save checks</button></div>
   </form>
-</section>
+</div>
 
-<section class="panel" id="summary">
+<div class="tab-pane" id="summary" role="tabpanel">
   <div class="panel-head">
-    <h2>Customer summary</h2>
+    <p class="hint tab-hint">Printed as "Work Completed" on the job sheet.</p>
     {% if summary_enabled %}
     <form method="post" action="{% url 'repairs:summary_generate' job.pk %}" class="gen-form"
           {% if job.summary_edited %}onsubmit="return confirm('Replace your edited summary with a new draft from the work log?');"{% endif %}>
@@ -144,8 +149,28 @@
       </span>
     </div>
   </form>
+</div>
 </section>
 <script>
+  // Tabs: Checks / Customer summary. Opens the tab named in the URL (#checks, #summary) or the last one used.
+  (() => {
+    const buttons = document.querySelectorAll(".tabs [data-tab]");
+    const show = name => {
+      buttons.forEach(b => b.setAttribute("aria-selected", b.dataset.tab === name));
+      document.querySelectorAll(".tab-pane").forEach(p => p.hidden = p.id !== name);
+      try { localStorage.setItem("crm-job-tab", name); } catch (e) {}
+      document.querySelectorAll("textarea.autogrow").forEach(t => t.dispatchEvent(new Event("input")));
+    };
+    buttons.forEach(b => b.addEventListener("click", () => {
+      show(b.dataset.tab); history.replaceState(null, "", "#" + b.dataset.tab);
+    }));
+    let start = location.hash.slice(1);
+    if (!["checks", "summary"].includes(start)) {
+      try { start = localStorage.getItem("crm-job-tab"); } catch (e) { start = null; }
+    }
+    show(["checks", "summary"].includes(start) ? start : "checks");
+  })();
+
   // Checks: colour the result, and "all Y" fills the empty ones in a column.
   const tint = s => { s.className = "res " + s.value.toLowerCase().replace("/", ""); };
   document.querySelectorAll("table.checks select").forEach(s => s.addEventListener("change", () => tint(s)));

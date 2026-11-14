@@ -240,3 +240,14 @@ button.fill { font-size: .75rem; font-weight: 400; margin-left: 4px; color: var(
 table.checks { max-width: none; }
 textarea.autogrow { overflow: hidden; resize: vertical; min-height: 120px; }
 @media (max-width: 900px) { .checks-cols { grid-template-columns: 1fr; } .checks-cols table + table thead { display: none; } }
+
+/* Tabs: Checks / Customer summary */
+.tabbed { padding-top: 0; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin: 0 -18px 14px; padding: 0 18px; }
+.tabs button { background: none; border: 0; border-bottom: 3px solid transparent; padding: 14px 12px 10px; font: inherit;
+  font-weight: 700; color: var(--muted); cursor: pointer; margin-bottom: -1px; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tabs button:hover { color: var(--ink); }
+.tab-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--returned); vertical-align: 2px; margin-left: 3px; }
+.tab-hint { margin: 0 0 10px; }
+#summary .panel-head { margin-bottom: 10px; }
