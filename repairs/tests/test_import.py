@@ -108,25 +108,18 @@ class ImportHolderTests(TestCase):
         self.assertTrue(all(j.holder_changes.filter(to_user=phil).exists() for j in RepairJob.objects.all()))
 
 
-class ImportQuoteCostTests(TestCase):
-    """Jetpack quotes become cost lines unless the job has itemised bench/parts costs."""
+class ImportQuoteTests(TestCase):
+    """The Jetpack quote is what the customer paid: it becomes a payment. Itemised bench/parts stay costs."""
 
-    def test_quotes_become_costs(self):
+    def test_quotes_become_payments(self):
         chris = get_user_model().objects.create_superuser("chris", first_name="Chris", password="x" * 16)
         from repairs.importer import run_import
         run_import(FIXTURE.read_text(), commit=True, by=chris)
-        # Job 10: itemised bench time (35) - quote (54) not added on top
-        self.assertEqual(list(RepairJob.objects.get(legacy_jetpack_id=10).costs.values_list("kind", "amount")),
-                         [("bench_time", Decimal("35.00"))])
-        # Job 11: no itemised costs - quote 20.00 becomes a line, credited to the technician (Chris - In test)
-        cost = RepairJob.objects.get(legacy_jetpack_id=11).costs.get()
-        self.assertEqual((cost.kind, cost.amount, cost.added_by), ("other", Decimal("20.00"), chris))
-        self.assertIn("Quoted price", cost.description)
-        # Job 12: quote 30.00 becomes its cost
-        self.assertEqual(RepairJob.objects.get(legacy_jetpack_id=12).costs.get().amount, Decimal("30.00"))
-
-    def test_unmatched_costs_credited_to_whoever_ran_the_import(self):
-        runner = get_user_model().objects.create_superuser("boss", password="x" * 16)
-        from repairs.importer import run_import
-        run_import(FIXTURE.read_text(), commit=True, by=runner)  # no user called Chris, so no technician
-        self.assertTrue(all(c.added_by == runner for j in RepairJob.objects.all() for c in j.costs.all()))
+        first = RepairJob.objects.get(legacy_jetpack_id=10)
+        self.assertEqual(list(first.costs.values_list("kind", "amount")), [("bench_time", Decimal("35.00"))])
+        self.assertEqual(list(first.payments.values_list("amount", "method", "reference")),
+                         [(Decimal("54.00"), "not_recorded", "From Jetpack quote")])
+        second = RepairJob.objects.get(legacy_jetpack_id=11)
+        self.assertFalse(second.costs.exists())
+        self.assertEqual(second.payments.get().amount, Decimal("20.00"))
+        self.assertEqual(second.payments.get().added_by, chris)

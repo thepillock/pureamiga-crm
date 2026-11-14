@@ -13,7 +13,8 @@ from __future__ import annotations
 import re
 from datetime import date
 
-REPAIR_REF_RE = re.compile(r"^[A-Z]?\d{2}$")
+REPAIR_REF_RE = re.compile(r"^[A-Z]?\d{2}[a-z]?$")   # 36, B55, and follow-up jobs like B16a
+_BASE_REF_RE = re.compile(r"^[A-Z]?\d{2}$")
 _REF_IN_TEXT = re.compile(
     r"(?i)\brepair\s+(?:(?:ref(?:erence)?|number|no\.?)\s*:?\s*([A-Z]?\d{2})|([A-Z]\d{2}))\b")
 
@@ -31,7 +32,10 @@ _WORDY = re.compile(
 
 
 def normalise_repair_ref(value: str) -> str:
-    return (value or "").strip().upper()
+    """'b16A ' -> 'B16a': capital prefix letter, lower-case follow-up letter."""
+    value = (value or "").strip()
+    m = re.fullmatch(r"([A-Za-z]?)(\d{2})([A-Za-z]?)", value)
+    return f"{m.group(1).upper()}{m.group(2)}{m.group(3).lower()}" if m else value.upper()
 
 
 def find_repair_ref(text: str) -> str:
@@ -47,7 +51,7 @@ def _ref_key(ref: str):
 
 def next_repair_ref(existing) -> str:
     """Next reference after the highest used: 01..99, then A00..A99, B00.. and so on."""
-    refs = [r for r in (normalise_repair_ref(x) for x in existing) if REPAIR_REF_RE.match(r)]
+    refs = [r for r in (normalise_repair_ref(x) for x in existing) if _BASE_REF_RE.match(r)]
     if not refs:
         return "01"
     letter, num = max(_ref_key(r) for r in refs)

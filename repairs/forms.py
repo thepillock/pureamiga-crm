@@ -1,7 +1,7 @@
 from django import forms
 
 from .logtext import next_repair_ref, normalise_repair_ref
-from .models import ITEMS_RECEIVED_CHOICES, Customer, JobCost, JobNote, Machine, RepairJob
+from .models import ITEMS_RECEIVED_CHOICES, Customer, JobCost, JobNote, Machine, Payment, RepairJob
 
 
 def clean_repair_ref_value(value, job_pk=None):
@@ -149,4 +149,21 @@ class JobCostForm(forms.ModelForm):
         amount = self.cleaned_data["amount"]
         if amount < 0:
             raise forms.ValidationError("Amount can't be negative.")
+        return amount
+
+
+class PaymentForm(forms.ModelForm):
+    class Meta:
+        model = Payment
+        fields = ["paid_on", "method", "amount", "reference"]
+        widgets = {
+            "paid_on": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+            "amount": forms.NumberInput(attrs={"step": "0.01", "min": "0", "placeholder": "0.00"}),
+            "reference": forms.TextInput(attrs={"placeholder": "Reference (optional)"}),
+        }
+
+    def clean_amount(self):
+        amount = self.cleaned_data["amount"]
+        if amount <= 0:
+            raise forms.ValidationError("Amount must be more than zero.")
         return amount

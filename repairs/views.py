@@ -12,7 +12,7 @@ from django.views.decorators.http import require_POST
 from .access import (visible_costs, visible_customers, visible_jobs, visible_machines,
                      visible_notes)
 from .forms import (BookInForm, CustomerForm, JobCostForm, JobNoteEditForm, JobNoteForm, MachineForm,
-                    RepairJobForm, suggested_repair_ref)
+                    PaymentForm, RepairJobForm, suggested_repair_ref)
 from . import jobsheet
 from .models import CHECK_RESULTS, CHECKS, STAGE_TIMESTAMP, JobNote, Stage, StageChange
 from .notes import split_note
@@ -126,6 +126,8 @@ def job_detail(request, pk):
         "costs": job.costs.select_related("added_by"),
         "cost_totals": _cost_totals(job),
         "cost_form": JobCostForm(),
+        "payments": job.payments.select_related("added_by"),
+        "payment_form": PaymentForm(),
         "history": _history(job),
         "note_form": note_form,
         "stages": Stage,
@@ -375,3 +377,42 @@ def job_sheet_pdf(request, pk):
     response = HttpResponse(jobsheet.render(job), content_type="application/pdf")
     response["Content-Disposition"] = f'inline; filename="{filename}"'
     return response
+
+
+# --- Payments ------------------------------------------------------------------
+
+def _visible_payments(user):
+    from .models import Payment
+    return Payment.objects.filter(job__in=visible_jobs(user)).select_related("job")
+
+
+@require_POST
+def payment_add(request, pk):
+    job = get_object_or_404(visible_jobs(request.user), pk=pk)
+    form = PaymentForm(request.POST)
+    if form.is_valid():
+        payment = form.save(commit=False)
+        payment.job, payment.added_by = job, request.user
+        payment.save()
+    else:
+        messages.error(request, "Payment not added: " + "; ".join(e for errs in form.errors.values() for e in errs))
+    return redirect(f"{job.get_absolute_url()}#costs")
+
+
+def payment_edit(request, pk):
+    payment = get_object_or_404(_visible_payments(request.user), pk=pk)
+    form = PaymentForm(request.POST or None, instance=payment)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect(f"{payment.job.get_absolute_url()}#costs")
+    return render(request, "repairs/form.html", {
+        "form": form, "title": f"Edit payment · {payment.job.ref}", "cancel": f"{payment.job.get_absolute_url()}#costs",
+    })
+
+
+@require_POST
+def payment_delete(request, pk):
+    payment = get_object_or_404(_visible_payments(request.user), pk=pk)
+    job = payment.job
+    payment.delete()
+    return redirect(f"{job.get_absolute_url()}#costs")

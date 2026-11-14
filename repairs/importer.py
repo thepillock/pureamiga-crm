@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from . import jetpack_import as ji
 
-from .models import Customer, JobCost, JobNote, Machine, RepairJob, Stage, StageChange
+from .models import Customer, JobCost, JobNote, Machine, Payment, RepairJob, Stage, StageChange
 from .notes import IMPORTED_HEADER, split_note
 
 
@@ -93,18 +93,16 @@ def _technician(name, cache):
 
 
 def _import_costs(job, j, added_by):
-    """Itemised bench-time/parts costs if the job has them; otherwise its quoted price as one cost line.
-
-    (In the Jetpack data the quote is the total charge: where both exist, quote = bench + parts.)
-    """
+    """Itemised bench-time/parts costs from Jetpack, and the quote as a payment (it's what the customer paid)."""
     when = j.accepted_at or j.received_at or job.created_at
     itemised = [(kind, amount) for kind, amount in (("bench_time", j.bench_time_cost), ("parts", j.parts_cost))
                 if amount]
-    if not itemised and j.quote_value:
-        itemised = [("other", j.quote_value)]
     for kind, amount in itemised:
-        JobCost.objects.create(job=job, kind=kind, amount=amount, added_by=added_by, created_at=when,
-                               description="Quoted price (from Jetpack CRM)" if kind == "other" else "")
+        JobCost.objects.create(job=job, kind=kind, amount=amount, added_by=added_by, created_at=when)
+    # The Jetpack quote is what the customer paid, so it's recorded as a payment, not a cost.
+    if j.quote_value:
+        Payment.objects.create(job=job, amount=j.quote_value, paid_on=timezone.localtime(when).date(),
+                               method="not_recorded", reference="From Jetpack quote", added_by=added_by)
 
 
 def _write(data, by=None):

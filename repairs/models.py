@@ -45,7 +45,8 @@ ITEMS_RECEIVED_CHOICES = [
 
 
 repair_ref_validator = RegexValidator(
-    r"^[A-Z]?\d{2}$", "Two digits, or a letter and two digits, e.g. 36 or B55.")
+    r"^[A-Z]?\d{2}[a-z]?$",
+    "Two digits, or a letter and two digits, e.g. 36 or B55 (add a letter for a follow-up job, e.g. B16a).")
 
 
 # The checks on the printed job sheet, in order.
@@ -138,7 +139,7 @@ class RepairJob(TimeStamped):
     machine = models.ForeignKey(Machine, on_delete=models.PROTECT, related_name="jobs")
     title = models.CharField(max_length=200, help_text="Short summary, e.g. 'A1200 premium recap'")
     repair_ref = models.CharField(
-        "Repair ref", max_length=3, blank=True, db_index=True, validators=[repair_ref_validator],
+        "Repair ref", max_length=4, blank=True, db_index=True, validators=[repair_ref_validator],
         help_text="Given when a job becomes a repair: 36, A04, B55…",
     )
     stage = models.CharField(max_length=20, choices=Stage.choices, default=Stage.RECEIVED, db_index=True)
@@ -205,6 +206,10 @@ class RepairJob(TimeStamped):
     def summary_edited(self):
         """True if the summary has been changed by hand since it was last generated."""
         return bool(self.customer_summary.strip()) and self.customer_summary != self.customer_summary_generated
+
+    @property
+    def total_paid(self):
+        return sum((p.amount for p in self.payments.all()), Decimal("0.00"))
 
     @property
     def total_costs(self):
@@ -316,6 +321,33 @@ class JobCost(models.Model):
 
     def __str__(self):
         return f"{self.job.ref} {self.get_kind_display()} £{self.amount}"
+
+
+class PaymentMethod(models.TextChoices):
+    BANK_TRANSFER = "bank_transfer", "Bank transfer"
+    PAYPAL = "paypal", "PayPal"
+    CARD = "card", "Card"
+    CASH = "cash", "Cash"
+    OTHER = "other", "Other"
+    NOT_RECORDED = "not_recorded", "Not recorded"
+
+
+class Payment(models.Model):
+    """Money received from the customer for a job."""
+    job = models.ForeignKey(RepairJob, on_delete=models.CASCADE, related_name="payments")
+    amount = models.DecimalField(max_digits=8, decimal_places=2)
+    paid_on = models.DateField("Date", default=timezone.localdate)
+    method = models.CharField(max_length=20, choices=PaymentMethod.choices, default=PaymentMethod.BANK_TRANSFER)
+    reference = models.CharField(max_length=200, blank=True, help_text="Transaction ID, note, etc.")
+    added_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name="+")
+    created_at = models.DateTimeField(default=timezone.now, editable=False)
+
+    class Meta:
+        ordering = ["paid_on", "pk"]
+
+    def __str__(self):
+        return f"{self.job.ref} £{self.amount} {self.get_method_display()}"
 
 
 class JobNote(models.Model):
