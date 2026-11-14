@@ -396,7 +396,7 @@ def payment_add(request, pk):
         payment.job, payment.added_by = job, request.user
         payment.save()
     else:
-        messages.error(request, "Payment not added: " + "; ".join(e for errs in form.errors.values() for e in errs))
+        messages.error(request, "Charge not added: " + "; ".join(e for errs in form.errors.values() for e in errs))
     return redirect(f"{job.get_absolute_url()}#costs")
 
 
@@ -407,7 +407,7 @@ def payment_edit(request, pk):
         form.save()
         return redirect(f"{payment.job.get_absolute_url()}#costs")
     return render(request, "repairs/form.html", {
-        "form": form, "title": f"Edit payment · {payment.job.ref}", "cancel": f"{payment.job.get_absolute_url()}#costs",
+        "form": form, "title": f"Edit charge · {payment.job.ref}", "cancel": f"{payment.job.get_absolute_url()}#costs",
     })
 
 

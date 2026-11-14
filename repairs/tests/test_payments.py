@@ -28,7 +28,7 @@ class PaymentViewTests(TestCase):
         self.client.post(add, {"paid_on": "2026-11-15", "method": "cash", "amount": "0"})  # rejected
         self.assertEqual(self.job.payments.count(), 2)
         page = self.client.get(self.job.get_absolute_url())
-        self.assertContains(page, "Total paid")
+        self.assertContains(page, "Total charged")
         self.assertContains(page, "£50.00")
         self.assertContains(page, "PayPal")
         p = self.job.payments.get(method="paypal")

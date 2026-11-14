@@ -345,6 +345,7 @@ class Payment(models.Model):
 
     class Meta:
         ordering = ["paid_on", "pk"]
+        verbose_name = "charge"
 
     def __str__(self):
         return f"{self.job.ref} £{self.amount} {self.get_method_display()}"

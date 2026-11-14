@@ -56,7 +56,7 @@
   </section>
 
   <section class="panel" id="costs">
-    <h2>Costs &amp; payments</h2>
+    <h2>Costs</h2>
     <table class="list compact costs">
       {% for c in costs %}
       <tr>
@@ -77,20 +77,20 @@
       </form>
     </details>
 
-    <h3 class="sub-head">Payments</h3>
+    <h3 class="sub-head">Charges</h3>
     <table class="list compact costs">
       {% for p in payments %}
       <tr>
         <td class="nowrap">{{ p.paid_on|date:"j M Y" }}</td><td>{{ p.get_method_display }}{% if p.reference %} · <span class="muted-inline">{{ p.reference }}</span>{% endif %}</td>
         <td class="num">£{{ p.amount }}</td>
         <td class="num row-actions"><a href="{% url 'repairs:payment_edit' p.pk %}">Edit</a>
-          <form method="post" action="{% url 'repairs:payment_delete' p.pk %}" class="inline" onsubmit="return confirm('Delete this payment?');">{% csrf_token %}<button class="link danger">Delete</button></form></td>
+          <form method="post" action="{% url 'repairs:payment_delete' p.pk %}" class="inline" onsubmit="return confirm('Delete this charge?');">{% csrf_token %}<button class="link danger">Delete</button></form></td>
       </tr>
-      {% empty %}<tr><td colspan="4" class="empty">No payments yet.</td></tr>{% endfor %}
-      {% if payments %}<tr class="total grand"><td colspan="2">Total paid</td><td class="num">£{{ job.total_paid }}</td><td></td></tr>{% endif %}
+      {% empty %}<tr><td colspan="4" class="empty">No charges yet.</td></tr>{% endfor %}
+      {% if payments %}<tr class="total grand"><td colspan="2">Total charged</td><td class="num">£{{ job.total_paid }}</td><td></td></tr>{% endif %}
     </table>
     <details class="add-cost">
-      <summary>+ Add payment</summary>
+      <summary>+ Add charge</summary>
       <form method="post" action="{% url 'repairs:payment_add' job.pk %}" class="cost-form">{% csrf_token %}
         {{ payment_form.paid_on }} {{ payment_form.method }} {{ payment_form.amount }} {{ payment_form.reference }} <button class="btn small">Add</button>
       </form>
