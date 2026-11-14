@@ -81,7 +81,6 @@
 
 <section class="panel">
   <h2>Work log</h2>
-  <form method="post" class="note-form">{% csrf_token %}{{ note_form.text }}<button class="btn">Add entry</button></form>
   {% for n in notes %}
   <div class="note" id="note-{{ n.pk }}">
     <div class="note-meta">
@@ -95,6 +94,7 @@
     <div class="pre">{{ n.text }}</div>
   </div>
   {% empty %}<p class="empty">No entries yet.</p>{% endfor %}
+  <form method="post" class="note-form">{% csrf_token %}{{ note_form.text }}<button class="btn">Add entry</button></form>
 </section>
 
 <section class="panel tabbed">

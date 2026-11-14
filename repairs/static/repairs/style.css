@@ -251,3 +251,4 @@ textarea.autogrow { overflow: hidden; resize: vertical; min-height: 120px; }
 .tab-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--returned); vertical-align: 2px; margin-left: 3px; }
 .tab-hint { margin: 0 0 10px; }
 #summary .panel-head { margin-bottom: 10px; }
+.note-form { margin: 16px 0 0; }

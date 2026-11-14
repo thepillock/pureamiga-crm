@@ -121,7 +121,7 @@ def job_detail(request, pk):
     User = get_user_model()
     return render(request, "repairs/job_detail.html", {
         "job": job,
-        "notes": job.notes.select_related("author").order_by("-created_at", "-pk"),  # newest first
+        "notes": job.notes.select_related("author").order_by("created_at", "pk"),  # oldest first
         "steps": [{"stage": st, "at": getattr(job, STAGE_TIMESTAMP[st])} for st in Stage],
         "costs": job.costs.select_related("added_by"),
         "cost_totals": _cost_totals(job),
