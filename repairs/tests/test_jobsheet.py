@@ -112,3 +112,59 @@ class PcmciaCheckTests(TestCase):
         self.assertIn(b"PCMCIA", jobsheet.render(job))
         self.assertIn(b"Card detect", jobsheet.render(job))
         self.assertContains(self.client.get(job.get_absolute_url()), 'value="Card detect"')
+
+
+class CustomCheckTests(TestCase):
+    def setUp(self):
+        self.chris = User.objects.create_superuser("chris", password="a-long-test-pass")
+        self.client.force_login(self.chris)
+        c = Customer.objects.create(first_name="Ada")
+        self.job = RepairJob.objects.create(customer=c, machine=Machine.objects.create(customer=c, model="Amiga 500"),
+                                            title="x", checks={"_extra": {"Trapdoor": {"in": "Y", "out": "Y"}}})
+        self.url = reverse("repairs:checks_save", args=[self.job.pk])
+
+    def test_imported_extras_show_as_other_checks(self):
+        page = self.client.get(self.job.get_absolute_url())
+        self.assertContains(page, "Other checks")
+        self.assertContains(page, 'name="custom-0-label" value="Trapdoor"')
+        self.assertContains(page, 'name="custom-new-label"')
+
+    def test_add_edit_and_remove(self):
+        self.client.post(self.url, {"power_in": "Y",
+                                    "custom-0-label": "Trapdoor", "custom-0-in": "Y", "custom-0-out": "Fault",
+                                    "custom-0-note": "Slot dirty",
+                                    "custom-new-label": "Gotek", "custom-new-in": "n/a", "custom-new-out": "Y"})
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.custom_check_rows(),
+                         [("Trapdoor", "Y", "Fault", "Slot dirty"), ("Gotek", "n/a", "Y", "")])
+        self.assertEqual(self.job.checks["power"], {"in": "Y"})
+        # Clear Trapdoor's name to remove it; duplicate names are ignored
+        self.client.post(self.url, {"custom-0-label": "", "custom-0-in": "Y",
+                                    "custom-1-label": "Gotek", "custom-1-in": "Y",
+                                    "custom-new-label": "gotek", "custom-new-in": "Fault"})
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.custom_check_rows(), [("Gotek", "Y", "", "")])
+        self.assertNotIn("power", self.job.checks)
+
+    def test_removing_all_custom_checks(self):
+        self.client.post(self.url, {"custom-0-label": ""})
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.checks, {})
+
+    def test_limit(self):
+        data = {f"custom-{i}-label": f"Check {i}" for i in range(20)}
+        self.client.post(self.url, data)
+        self.job.refresh_from_db()
+        self.assertEqual(len(self.job.custom_check_rows()), 12)
+        self.assertNotContains(self.client.get(self.job.get_absolute_url()), 'name="custom-new-label"')
+
+    def test_pdf_and_prompt_include_custom_checks(self):
+        self.job.checks = {"_extra": {f"Extra {i}": {"in": "Y", "note": f"note {i}"} for i in range(12)}}
+        self.job.customer_summary = "Done"
+        self.job.save()
+        pdf = jobsheet.render(self.job)
+        self.assertIn(b"Extra 11", pdf)
+        self.assertIn(b"note 11", pdf)
+        self.assertIn(b"Date Out", pdf)
+        JobNote.objects.create(job=self.job, text="Tested")
+        self.assertIn("Extra 3: in Y, out - (note 3)", build_prompt(self.job))

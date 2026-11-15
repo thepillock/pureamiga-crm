@@ -241,7 +241,9 @@ class ExtraChecksKeptTests(TestCase):
         self.client.force_login(chris)
         c = Customer.objects.create(first_name="Ada")
         job = RepairJob.objects.create(customer=c, machine=Machine.objects.create(customer=c, model="Amiga 600"),
-                                       title="x", checks={"_extra": {"PCMCIA": {"in": "Y"}}})
-        self.client.post(reverse("repairs:checks_save", args=[job.pk]), {"power_in": "Y"})
+                                       title="x", checks={"_extra": {"Trapdoor": {"in": "Y"}}, "other": {"x": 1}})
+        # The page always sends the custom rows back, so they're kept (and unknown keys are left alone)
+        self.client.post(reverse("repairs:checks_save", args=[job.pk]),
+                         {"power_in": "Y", "custom-0-label": "Trapdoor", "custom-0-in": "Y"})
         job.refresh_from_db()
-        self.assertEqual(job.checks, {"_extra": {"PCMCIA": {"in": "Y"}}, "power": {"in": "Y"}})
+        self.assertEqual(job.checks, {"other": {"x": 1}, "_extra": {"Trapdoor": {"in": "Y"}}, "power": {"in": "Y"}})

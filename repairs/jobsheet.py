@@ -134,7 +134,7 @@ def render(job):
         c.setFont(LABEL, 8.5)
         c.drawString(px, py, title)
     row_h, top = 19.5, 504
-    rows = job.check_rows()
+    rows = job.check_rows() + [("", label, in_, out, note) for label, in_, out, note in job.custom_check_rows()]
     bottom = top + len(rows) * row_h
     _box(c, cols[0], top, cols[-1], bottom)  # draw the grid once so shared edges aren't doubled
     for x in cols[1:-1]:
@@ -148,10 +148,11 @@ def render(job):
         _cell(c, cols[1], y1, cols[2], y2, out, centre=True)
         _cell(c, cols[2], y1, cols[3], y2, note, bold=True)
 
-    # Date out
-    _box(c, 133, 894, 469, 914)
-    _label(c, 120, 891, "Date Out")
-    _text(c, 133, 894, 469, 914, returned and f"{returned:%-d %b %Y}")
+    # Date out: under the checks table (which grows with custom checks)
+    y = max(894, bottom + 20)
+    _box(c, 133, y, 469, y + 20)
+    _label(c, 120, y - 3, "Date Out")
+    _text(c, 133, y, 469, y + 20, returned and f"{returned:%-d %b %Y}")
 
     c.showPage()
     c.save()

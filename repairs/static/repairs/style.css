@@ -257,3 +257,9 @@ textarea.autogrow { overflow: hidden; resize: vertical; min-height: 120px; }
 .muted-inline { color: var(--muted); font-size: .85rem; }
 .cost-form input[type=date] { width: auto; }
 .cost-form input[name=reference] { flex: 1; min-width: 140px; }
+table.custom-checks { max-width: calc(50% - 16px); }
+table.custom-checks td:first-child { width: 170px; }
+table.custom-checks td:first-child input { font-weight: 400; }
+table.custom-checks .new-check input::placeholder { color: var(--accent); }
+@media (max-width: 900px) { table.custom-checks { max-width: none; } }
+table.custom-checks + .hint { margin-top: 8px; }

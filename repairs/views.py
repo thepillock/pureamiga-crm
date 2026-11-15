@@ -14,7 +14,8 @@ from .access import (visible_costs, visible_customers, visible_jobs, visible_mac
 from .forms import (BookInForm, CustomerForm, JobCostForm, JobNoteEditForm, JobNoteForm, MachineForm,
                     PaymentForm, RepairJobForm, suggested_repair_ref)
 from . import jobsheet
-from .models import CHECK_RESULTS, CHECKS, STAGE_TIMESTAMP, JobNote, Stage, StageChange
+from .models import (CHECK_RESULTS, CHECKS, CUSTOM_CHECKS_KEY, MAX_CUSTOM_CHECKS, STAGE_TIMESTAMP, JobNote, Stage,
+                     StageChange)
 from .notes import split_note
 from .summary import SummaryError, generate_summary, is_enabled as summary_enabled
 
@@ -141,6 +142,8 @@ def job_detail(request, pk):
         "summary_enabled": summary_enabled(),
         "check_results": CHECK_RESULTS,
         "check_halves": _halves(job.check_rows()),
+        "custom_checks": job.custom_check_rows(),
+        "can_add_custom": len(job.custom_check_rows()) < MAX_CUSTOM_CHECKS,
     })
 
 
@@ -358,8 +361,23 @@ def summary_generate(request, pk):
 @require_POST
 def checks_save(request, pk):
     job = get_object_or_404(visible_jobs(request.user), pk=pk)
-    known = {key for key, _label in CHECKS}
-    checks = {k: v for k, v in (job.checks or {}).items() if k not in known}  # keep e.g. imported extra checks
+    known = {key for key, _label in CHECKS} | {CUSTOM_CHECKS_KEY}
+    checks = {k: v for k, v in (job.checks or {}).items() if k not in known}
+    # Custom checks: existing rows (custom-0-…) then the blank "add" row (custom-new-…). An empty name removes a row.
+    custom, seen = {}, set()
+    prefixes = [f"custom-{i}" for i in range(MAX_CUSTOM_CHECKS + 1)] + ["custom-new"]
+    for prefix in prefixes:
+        label = request.POST.get(f"{prefix}-label", "").strip()[:40]
+        if not label or label.lower() in seen or len(custom) >= MAX_CUSTOM_CHECKS:
+            continue
+        seen.add(label.lower())
+        entry = {col: v for col in ("in", "out") if (v := request.POST.get(f"{prefix}-{col}", "")) in CHECK_RESULTS}
+        note = request.POST.get(f"{prefix}-note", "").strip()[:200]
+        if note:
+            entry["note"] = note
+        custom[label] = entry
+    if custom:
+        checks[CUSTOM_CHECKS_KEY] = custom
     for key, _label in CHECKS:
         entry = {}
         for col in ("in", "out"):

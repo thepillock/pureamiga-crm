@@ -144,6 +144,30 @@
     </table>
     {% endfor %}
     </div>
+
+    <h3 class="sub-head">Other checks</h3>
+    <table class="checks custom-checks">
+      <thead><tr><th>Check</th><th>In</th><th>Out</th><th>Notes</th></tr></thead>
+      <tbody>
+      {% for label, in_, out, note in custom_checks %}
+      <tr>
+        <td><input name="custom-{{ forloop.counter0 }}-label" value="{{ label }}" maxlength="40" aria-label="Check name" title="Clear the name to remove this check"></td>
+        <td><select name="custom-{{ forloop.counter0 }}-in" data-col="in" class="res {{ in_|slugify }}"><option value=""></option>{% for r in check_results %}<option {% if r == in_ %}selected{% endif %}>{{ r }}</option>{% endfor %}</select></td>
+        <td><select name="custom-{{ forloop.counter0 }}-out" data-col="out" class="res {{ out|slugify }}"><option value=""></option>{% for r in check_results %}<option {% if r == out %}selected{% endif %}>{{ r }}</option>{% endfor %}</select></td>
+        <td><input name="custom-{{ forloop.counter0 }}-note" value="{{ note }}" maxlength="200"></td>
+      </tr>
+      {% endfor %}
+      {% if can_add_custom %}
+      <tr class="new-check">
+        <td><input name="custom-new-label" maxlength="40" placeholder="+ Add a check" aria-label="New check name"></td>
+        <td><select name="custom-new-in" class="res"><option value=""></option>{% for r in check_results %}<option>{{ r }}</option>{% endfor %}</select></td>
+        <td><select name="custom-new-out" class="res"><option value=""></option>{% for r in check_results %}<option>{{ r }}</option>{% endfor %}</select></td>
+        <td><input name="custom-new-note" maxlength="200"></td>
+      </tr>
+      {% endif %}
+      </tbody>
+    </table>
+    <p class="hint">Clear a name to remove that check. Other checks print on the job sheet after Expansion.</p>
     <div class="actions"><button class="btn">Save checks</button></div>
   </form>
 </div>

@@ -76,6 +76,8 @@ def build_prompt(job):
         lines.append(f"Accessories received: {job.accessories}")
     checks = [f"{label}: in {in_ or '-'}, out {out or '-'}" + (f" ({note})" if note else "")
               for _key, label, in_, out, note in job.check_rows() if in_ or out or note]
+    checks += [f"{label}: in {in_ or '-'}, out {out or '-'}" + (f" ({note})" if note else "")
+               for label, in_, out, note in job.custom_check_rows()]
     if checks:
         lines.append("Checks (Y = OK):\n" + "\n".join(checks))
     parts = [c.description for c in job.costs.filter(kind="parts") if c.description]

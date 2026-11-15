@@ -58,6 +58,8 @@ CHECKS = [
     ("soak_test", "Soak Test"), ("pcmcia", "PCMCIA"), ("expansion", "Expansion"),
 ]
 CHECK_RESULTS = ["Y", "Fault", "n/a"]
+MAX_CUSTOM_CHECKS = 12
+CUSTOM_CHECKS_KEY = "_extra"  # {label: {in, out, note}}: custom checks, incl. extra rows imported from old sheets
 
 
 def fold_extra_checks(checks, known=None):
@@ -203,6 +205,11 @@ class RepairJob(TimeStamped):
             c = (self.checks or {}).get(key, {})
             rows.append((key, label, c.get("in", ""), c.get("out", ""), c.get("note", "")))
         return rows
+
+    def custom_check_rows(self):
+        """[(label, in, out, note)] for the job's own extra checks, in the order they were added."""
+        custom = (self.checks or {}).get(CUSTOM_CHECKS_KEY) or {}
+        return [(label, c.get("in", ""), c.get("out", ""), c.get("note", "")) for label, c in custom.items()]
 
     @property
     def machine_make_model(self):
