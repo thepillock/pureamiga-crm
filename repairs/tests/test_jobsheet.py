@@ -85,3 +85,30 @@ class ChecksAndSheetTests(TestCase):
         self.client.force_login(phil)
         self.assertEqual(self.client.get(reverse("repairs:job_sheet_pdf", args=[self.job.pk])).status_code, 404)
         self.assertEqual(self.save_checks(power_in="Y").status_code, 404)
+
+
+class PcmciaCheckTests(TestCase):
+    def test_pcmcia_is_a_standard_check_before_expansion(self):
+        keys = [k for k, _ in CHECKS]
+        self.assertEqual(keys[keys.index("pcmcia") + 1], "expansion")
+
+    def test_fold_extra_checks(self):
+        from repairs.models import fold_extra_checks
+        folded = fold_extra_checks({"power": {"in": "Y"},
+                                    "_extra": {"PCMCIA": {"in": "Y", "out": "Y"}, "Trapdoor": {"in": "n/a"}}})
+        self.assertEqual(folded, {"power": {"in": "Y"}, "pcmcia": {"in": "Y", "out": "Y"},
+                                  "_extra": {"Trapdoor": {"in": "n/a"}}})
+        self.assertEqual(fold_extra_checks({"_extra": {"PCMCIA": {"in": "Y"}}}), {"pcmcia": {"in": "Y"}})
+        # An existing PCMCIA result wins
+        self.assertEqual(fold_extra_checks({"pcmcia": {"in": "Fault"}, "_extra": {"PCMCIA": {"in": "Y"}}}),
+                         {"pcmcia": {"in": "Fault"}, "_extra": {"PCMCIA": {"in": "Y"}}})
+
+    def test_pdf_and_page_show_pcmcia(self):
+        chris = User.objects.create_superuser("chris", password="a-long-test-pass")
+        self.client.force_login(chris)
+        c = Customer.objects.create(first_name="Ada")
+        job = RepairJob.objects.create(customer=c, machine=Machine.objects.create(customer=c, model="Amiga 600"),
+                                       title="x", checks={"pcmcia": {"in": "Fault", "out": "Y", "note": "Card detect"}})
+        self.assertIn(b"PCMCIA", jobsheet.render(job))
+        self.assertIn(b"Card detect", jobsheet.render(job))
+        self.assertContains(self.client.get(job.get_absolute_url()), 'value="Card detect"')

@@ -15,7 +15,7 @@ CHECK_KEYS = {
     "audio": "audio", "int fdd": "int_fdd", "ext fdd port": "ext_fdd", "serial port": "serial",
     "parallel port": "parallel", "mouse port": "mouse", "joystick port": "joystick", "ide port": "ide",
     "cd32 drive": "cd32_drive", "cd drive": "cd32_drive", "keyboard": "keyboard", "memory": "memory",
-    "cias": "cias", "soak test": "soak_test", "soak": "soak_test", "expansion": "expansion",
+    "cias": "cias", "soak test": "soak_test", "soak": "soak_test", "pcmcia": "pcmcia", "expansion": "expansion",
     "expansions": "expansion",
 }
 RESULTS = {"y": "Y", "ok": "Y", "yes": "Y", "n/a": "n/a", "na": "n/a", "fault": "Fault", "faulty": "Fault",

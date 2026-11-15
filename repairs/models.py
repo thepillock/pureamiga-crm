@@ -55,9 +55,24 @@ CHECKS = [
     ("audio", "Audio"), ("int_fdd", "Int FDD"), ("ext_fdd", "Ext FDD Port"), ("serial", "Serial Port"),
     ("parallel", "Parallel Port"), ("mouse", "Mouse Port"), ("joystick", "Joystick Port"), ("ide", "IDE Port"),
     ("cd32_drive", "CD32 Drive"), ("keyboard", "Keyboard"), ("memory", "Memory"), ("cias", "CIAs"),
-    ("soak_test", "Soak Test"), ("expansion", "Expansion"),
+    ("soak_test", "Soak Test"), ("pcmcia", "PCMCIA"), ("expansion", "Expansion"),
 ]
 CHECK_RESULTS = ["Y", "Fault", "n/a"]
+
+
+def fold_extra_checks(checks, known=None):
+    """Move imported extra checks (checks["_extra"], keyed by the sheet's label) into standard checks
+    whose label matches, e.g. "PCMCIA" -> checks["pcmcia"]. Returns a new dict."""
+    checks = dict(checks or {})
+    extra = dict(checks.pop("_extra", None) or {})
+    by_label = {label.lower(): key for key, label in (known or CHECKS)}
+    for label in list(extra):
+        key = by_label.get(label.strip().lower())
+        if key and not checks.get(key):
+            checks[key] = extra.pop(label)
+    if extra:
+        checks["_extra"] = extra
+    return checks
 
 
 class TimeStamped(models.Model):

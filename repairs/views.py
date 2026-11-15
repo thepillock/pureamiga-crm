@@ -99,6 +99,11 @@ def _name(user):
     return (user.get_short_name() or user.username) if user else ""
 
 
+def _halves(rows):
+    mid = (len(rows) + 1) // 2
+    return [rows[:mid], rows[mid:]]
+
+
 def _cost_totals(job):
     """Costs added up per person, in the order each person first added one."""
     totals = {}
@@ -135,7 +140,7 @@ def job_detail(request, pk):
         "next_repair_ref": "" if job.repair_ref else suggested_repair_ref(),
         "summary_enabled": summary_enabled(),
         "check_results": CHECK_RESULTS,
-        "check_halves": [job.check_rows()[:9], job.check_rows()[9:]],
+        "check_halves": _halves(job.check_rows()),
     })
 
 

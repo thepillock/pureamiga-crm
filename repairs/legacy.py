@@ -18,7 +18,8 @@ from django.conf import settings
 from django.db import transaction
 
 from .logtext import normalise_repair_ref
-from .models import Customer, JobCost, JobNote, Machine, Payment, RepairJob, Stage, StageChange
+from .models import (Customer, JobCost, JobNote, Machine, Payment, RepairJob, Stage, StageChange,
+                     fold_extra_checks)
 
 MARKER = "From repairs spreadsheet"
 FINANCE_REF = "From finances sheet"
@@ -131,7 +132,7 @@ def _enrich(job, item, user, result, from_jetpack):
         job.items_received = item["items_received"]
         changed.append("items_received")
     if not job.checks and item.get("checks"):
-        job.checks = item["checks"]
+        job.checks = fold_extra_checks(item["checks"])
         changed.append("checks")
         result.stats["checks_added"] += 1
     if not job.received_at and item.get("date_in"):

@@ -95,3 +95,27 @@ class QuotePaymentMigrationTests(TransactionTestCase):
                          [("parts", Decimal("6.00"))])
         self.assertEqual(list(new.get_model("repairs", "Payment").objects.values_list("amount", "method")),
                          [(Decimal("54.00"), "not_recorded")])
+
+
+class PcmciaMigrationTests(TransactionTestCase):
+    """0010 moves imported PCMCIA results out of the extra checks."""
+
+    def test_fold(self):
+        executor = MigrationExecutor(connection)
+        executor.migrate([("repairs", "0009_payment_verbose_name")])
+        old = executor.loader.project_state([("repairs", "0009_payment_verbose_name")]).apps
+        customer = old.get_model("repairs", "Customer").objects.create(first_name="Ada")
+        machine = old.get_model("repairs", "Machine").objects.create(customer=customer, model="Amiga 600")
+        Job = old.get_model("repairs", "RepairJob")
+        a = Job.objects.create(customer=customer, machine=machine, title="a",
+                               checks={"power": {"in": "Y"}, "_extra": {"PCMCIA": {"in": "Y", "out": "Y"}}})
+        b = Job.objects.create(customer=customer, machine=machine, title="b",
+                               checks={"_extra": {"PCMCIA": {"in": "Y"}, "Trapdoor": {"in": "n/a"}}})
+        executor = MigrationExecutor(connection)
+        executor.loader.build_graph()
+        executor.migrate([("repairs", "0010_pcmcia_check")])
+        new = executor.loader.project_state([("repairs", "0010_pcmcia_check")]).apps
+        Job = new.get_model("repairs", "RepairJob")
+        self.assertEqual(Job.objects.get(pk=a.pk).checks, {"power": {"in": "Y"}, "pcmcia": {"in": "Y", "out": "Y"}})
+        self.assertEqual(Job.objects.get(pk=b.pk).checks,
+                         {"pcmcia": {"in": "Y"}, "_extra": {"Trapdoor": {"in": "n/a"}}})
