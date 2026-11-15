@@ -12,6 +12,7 @@ urlpatterns = [
     path("jobs/<int:pk>/move/", views.job_move, name="job_move"),
     path("jobs/<int:pk>/assign-ref/", views.job_assign_ref, name="job_assign_ref"),
     path("jobs/<int:pk>/hand/", views.job_hand, name="job_hand"),
+    path("jobs/<int:pk>/share/", views.job_share, name="job_share"),
     path("jobs/<int:pk>/files/", views.attachment_upload, name="attachment_upload"),
     path("files/<int:pk>/", views.attachment_file, name="attachment_file"),
     path("files/<int:pk>/delete/", views.attachment_delete, name="attachment_delete"),

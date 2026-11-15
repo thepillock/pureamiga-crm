@@ -169,6 +169,10 @@ class RepairJob(TimeStamped):
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="held_jobs",
         verbose_name="With", help_text="Who has the job now",
     )
+    shared_with = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, blank=True, related_name="shared_jobs",
+        help_text="People who can see this job without holding it",
+    )
 
     # Intake
     work_requested = models.TextField(blank=True)

@@ -285,3 +285,7 @@ table.custom-checks + .hint { margin-top: 8px; }
 .pill.stage-completed { background: var(--completed); }
 .col.stage-completed { border-color: var(--completed); }
 @media (max-width: 1150px) and (min-width: 901px) { .board { grid-template-columns: repeat(3, 1fr); } }
+.share-menu { padding: 10px 12px; min-width: 200px; display: flex; flex-direction: column; gap: 6px; }
+.share-menu .hint { margin: 0 0 2px; }
+.menu-items.share-menu .btn { align-self: flex-start; width: auto; margin-top: 4px; padding: 5px 14px;
+  background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent); text-align: center; }

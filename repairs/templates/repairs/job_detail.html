@@ -15,6 +15,19 @@
       {% endfor %}
     </div>
   </details>
+  {% if share_candidates %}
+  <details class="menu">
+    <summary class="btn ghost" title="Who else can see this job">Shared{% if shared_ids %} ({{ shared_ids|length }}){% endif %} ▾</summary>
+    <form method="post" action="{% url 'repairs:job_share' job.pk %}" class="menu-items share-menu">{% csrf_token %}
+      <p class="hint">Also visible to:</p>
+      {% for u in share_candidates %}
+      <label class="check"><input type="checkbox" name="users" value="{{ u.pk }}" {% if u.pk in shared_ids %}checked{% endif %}>
+        {{ u.get_short_name|default:u.username }}{% if u == job.holder %} <span class="hint">(has it)</span>{% endif %}</label>
+      {% endfor %}
+      <button class="btn small">Save</button>
+    </form>
+  </details>
+  {% endif %}
   <a class="btn ghost" href="{% url 'repairs:job_sheet_pdf' job.pk %}" target="_blank" title="Printable repair sheet">Job sheet PDF</a>
   <a class="btn ghost" href="{% url 'repairs:job_edit' job.pk %}">Edit</a>
 </div>

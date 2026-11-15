@@ -57,8 +57,9 @@ What the importer does:
 
 ### Who sees what
 - **You** (superuser), and anyone given the *“Can see every job”* permission in Admin → Users, see everything.
-- **Everyone else** (e.g. Phil) sees only the jobs they **hold now or have ever held**, those jobs' customers (plus customers they created), and those customers' machines. They get no Admin or Tools. They can book in, move jobs between any stages, add log entries and costs, and edit customers.
+- **Everyone else** (e.g. Phil) sees only the jobs they **hold now, have ever held, or that are shared with them**, those jobs' customers (plus customers they created), and those customers' machines. They get no Admin or Tools. They can book in, move jobs between any stages, add log entries and costs, and edit customers.
 - Each job has a **stage** and a **holder** ("With"). Whoever books a job in holds it. Hand it over from the job page (**With → Hand over**), and every handover is logged in the job history. The board's **With me** filter shows just your jobs.
+- To let someone see a job without handing it over, use **Shared ▾** on the job page and tick their name.
 - A job you raise and hand back in person never involves Phil, so he never sees it. If you hand it to him to post back, it appears for him.
 
 For imported jobs that all came through Phil: create Phil's account first (Admin → Users → Add; leave *Staff* and *Superuser* off). Then either choose him under *Imported jobs are with* when importing, or use **Tools → Imported jobs with nobody** for jobs already imported.

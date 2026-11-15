@@ -247,3 +247,58 @@ class ExtraChecksKeptTests(TestCase):
                          {"power_in": "Y", "custom-0-label": "Trapdoor", "custom-0-in": "Y"})
         job.refresh_from_db()
         self.assertEqual(job.checks, {"other": {"x": 1}, "_extra": {"Trapdoor": {"in": "Y"}}, "power": {"in": "Y"}})
+
+
+class SharingTests(TestCase):
+    def setUp(self):
+        self.chris = User.objects.create_superuser("chris", first_name="Chris", password="a-long-test-pass")
+        self.phil = User.objects.create_user("phil", first_name="Phil", password="a-long-test-pass")
+        self.dave = User.objects.create_user("dave", first_name="Dave", password="a-long-test-pass")
+        customer = Customer.objects.create(first_name="Private", last_name="Person")
+        machine = Machine.objects.create(customer=customer, model="Amiga 1200")
+        self.job = RepairJob.objects.create(customer=customer, machine=machine, title="Chris's own job",
+                                            received_at=timezone.now())
+        self.job.hand_to(self.chris, by=self.chris)
+        self.url = reverse("repairs:job_share", args=[self.job.pk])
+
+    def sees(self, user):
+        self.client.force_login(user)
+        return self.client.get(self.job.get_absolute_url()).status_code == 200
+
+    def test_share_and_unshare(self):
+        self.assertFalse(self.sees(self.phil))
+        self.client.force_login(self.chris)
+        page = self.client.get(self.job.get_absolute_url())
+        self.assertContains(page, "Also visible to:")
+        self.assertNotContains(page, f'name="users" value="{self.chris.pk}"')  # can already see everything
+        self.client.post(self.url, {"users": [self.phil.pk]})
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.holder, self.chris)  # sharing doesn't hand it over
+        self.assertTrue(self.sees(self.phil))
+        self.assertFalse(self.sees(self.dave))
+        self.client.force_login(self.phil)
+        self.assertContains(self.client.get("/customers/"), "Private Person")
+        self.assertContains(self.client.get("/"), "Chris&#x27;s own job")
+
+        self.client.force_login(self.chris)
+        self.client.post(self.url, {})
+        self.assertFalse(self.sees(self.phil))
+
+    def test_someone_who_held_it_still_sees_it_after_unsharing(self):
+        self.job.hand_to(self.phil, by=self.chris)
+        self.job.hand_to(self.chris, by=self.phil)
+        self.client.force_login(self.chris)
+        self.client.post(self.url, {})
+        self.assertTrue(self.sees(self.phil))
+
+    def test_restricted_user_can_share_jobs_they_see_only(self):
+        self.client.force_login(self.phil)
+        self.assertEqual(self.client.post(self.url, {"users": [self.phil.pk]}).status_code, 404)
+        self.job.shared_with.add(self.phil)
+        self.client.post(self.url, {"users": [self.phil.pk, self.dave.pk]})
+        self.assertTrue(self.sees(self.dave))
+
+    def test_bogus_ids_ignored(self):
+        self.client.force_login(self.chris)
+        self.client.post(self.url, {"users": [self.chris.pk, "999", "x"]})
+        self.assertFalse(self.job.shared_with.exists())

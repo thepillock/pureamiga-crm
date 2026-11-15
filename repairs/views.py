@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .access import (visible_costs, visible_customers, visible_jobs, visible_machines,
+from .access import (can_view_all, visible_costs, visible_customers, visible_jobs, visible_machines,
                      visible_notes)
 from .forms import (BookInForm, CustomerForm, JobCostForm, JobNoteEditForm, JobNoteForm, MachineForm,
                     PaymentForm, RepairJobForm, StageChangeForm, suggested_repair_ref)
@@ -116,6 +116,12 @@ def _cost_totals(job):
     return list(totals.values())
 
 
+def _share_candidates(job):
+    """People a job can be shared with: active users who can't already see everything."""
+    User = get_user_model()
+    return [u for u in User.objects.filter(is_active=True).order_by("first_name", "username") if not can_view_all(u)]
+
+
 def job_detail(request, pk):
     job = get_object_or_404(_jobs(request), pk=pk)
     note_form = JobNoteForm()
@@ -138,6 +144,8 @@ def job_detail(request, pk):
         "note_form": note_form,
         "stages": Stage,
         "hand_to_users": User.objects.filter(is_active=True).exclude(pk=job.holder_id).order_by("first_name", "username"),
+        "share_candidates": _share_candidates(job),
+        "shared_ids": set(job.shared_with.values_list("pk", flat=True)),
         "next_repair_ref": "" if job.repair_ref else suggested_repair_ref(),
         "summary_enabled": summary_enabled(),
         "check_results": CHECK_RESULTS,
@@ -525,3 +533,18 @@ def attachment_delete(request, pk):
     a.delete()
     messages.success(request, "File deleted.")
     return redirect(f"{job.get_absolute_url()}#files")
+
+
+@require_POST
+def job_share(request, pk):
+    """Set who (of the people who can't see everything) can see this job."""
+    job = get_object_or_404(visible_jobs(request.user), pk=pk)
+    candidates = {u.pk: u for u in _share_candidates(job)}
+    chosen = {int(v) for v in request.POST.getlist("users") if v.isdigit() and int(v) in candidates}
+    # Only change sharing for people this form offered; anyone else stays as they were
+    current = set(job.shared_with.values_list("pk", flat=True))
+    job.shared_with.remove(*[candidates[i] for i in (current & set(candidates)) - chosen])
+    job.shared_with.add(*[candidates[i] for i in chosen - current])
+    names = ", ".join(_name(candidates[i]) for i in sorted(chosen, key=lambda i: _name(candidates[i])))
+    messages.success(request, f"{job.ref} is shared with {names}." if names else f"{job.ref} isn't shared with anyone.")
+    return redirect(job)
