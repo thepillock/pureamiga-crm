@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Customer, HolderChange, JobCost, JobNote, Machine, Payment, RepairJob, StageChange
+from .models import Customer, HolderChange, JobAttachment, JobCost, JobNote, Machine, Payment, RepairJob, StageChange
 
 
 class MachineInline(admin.TabularInline):
@@ -41,6 +41,13 @@ class PaymentInline(admin.TabularInline):
     extra = 0
 
 
+class JobAttachmentInline(admin.TabularInline):
+    model = JobAttachment
+    extra = 0
+    fields = ["original_name", "caption", "content_type", "uploaded_by", "created_at"]
+    readonly_fields = fields
+
+
 class HolderChangeInline(admin.TabularInline):
     model = HolderChange
     extra = 0
@@ -62,4 +69,4 @@ class RepairJobAdmin(admin.ModelAdmin):
     search_fields = ["title", "repair_ref", "customer__first_name", "customer__last_name", "machine__serial_number"]
     autocomplete_fields = ["customer", "machine"]
     readonly_fields = ["legacy_jetpack_id", "legacy_status", "created_at", "updated_at"]
-    inlines = [JobCostInline, PaymentInline, JobNoteInline, StageChangeInline, HolderChangeInline]
+    inlines = [JobCostInline, PaymentInline, JobAttachmentInline, JobNoteInline, StageChangeInline, HolderChangeInline]

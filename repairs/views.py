@@ -4,7 +4,7 @@ from decimal import Decimal
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Q, Sum
-from django.http import HttpResponse
+from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -13,7 +13,7 @@ from .access import (visible_costs, visible_customers, visible_jobs, visible_mac
                      visible_notes)
 from .forms import (BookInForm, CustomerForm, JobCostForm, JobNoteEditForm, JobNoteForm, MachineForm,
                     PaymentForm, RepairJobForm, StageChangeForm, suggested_repair_ref)
-from . import jobsheet
+from . import attachments, jobsheet
 from .models import (CHECK_RESULTS, CHECKS, CUSTOM_CHECKS_KEY, MAX_CUSTOM_CHECKS, STAGE_TIMESTAMP, JobNote, Stage,
                      StageChange)
 from .notes import split_note
@@ -141,6 +141,7 @@ def job_detail(request, pk):
         "next_repair_ref": "" if job.repair_ref else suggested_repair_ref(),
         "summary_enabled": summary_enabled(),
         "check_results": CHECK_RESULTS,
+        "attachments": job.attachments.select_related("uploaded_by"),
         "check_halves": _halves(job.check_rows()),
         "custom_checks": job.custom_check_rows(),
         "can_add_custom": len(job.custom_check_rows()) < MAX_CUSTOM_CHECKS,
@@ -464,3 +465,63 @@ def stage_change_edit(request, pk):
         "title": f"{job.ref}: when did it move to {change.get_to_stage_display()}?",
         "cancel": job.get_absolute_url(),
     })
+
+
+# --- Photos and letters ---------------------------------------------------------
+
+@require_POST
+def attachment_upload(request, pk):
+    from .models import JobAttachment
+    job = get_object_or_404(visible_jobs(request.user), pk=pk)
+    files = request.FILES.getlist("files")
+    caption = request.POST.get("caption", "").strip()[:200]
+    added, refused = 0, []
+    for f in files:
+        if f.size > attachments.max_bytes():
+            refused.append(f"{f.name} is over {attachments.max_bytes() // (1024 * 1024)} MB")
+            continue
+        head = f.read(16)
+        f.seek(0)
+        kind = attachments.sniff(head)
+        if kind is None:
+            refused.append(f"{f.name} isn't a photo (JPEG, PNG, WebP, HEIC, GIF) or a PDF")
+            continue
+        content_type, ext = kind
+        a = JobAttachment(job=job, original_name=f.name[:255], content_type=content_type, caption=caption,
+                          uploaded_by=request.user)
+        a.file.save(attachments.safe_name(f.name, ext), f, save=True)
+        added += 1
+    if added:
+        messages.success(request, f"{added} file{'s' if added != 1 else ''} added.")
+    for r in refused:
+        messages.error(request, f"Not added: {r}.")
+    if not files:
+        messages.error(request, "Choose a photo or PDF to upload.")
+    return redirect(f"{job.get_absolute_url()}#files")
+
+
+def _visible_attachments(user):
+    from .models import JobAttachment
+    return JobAttachment.objects.filter(job__in=visible_jobs(user)).select_related("job")
+
+
+def attachment_file(request, pk):
+    a = get_object_or_404(_visible_attachments(request.user), pk=pk)
+    try:
+        fh = a.file.open("rb")
+    except FileNotFoundError:
+        raise Http404("File missing")
+    response = FileResponse(fh, content_type=a.content_type, as_attachment=not (a.is_image or
+                            a.content_type == "application/pdf"), filename=a.original_name)
+    response["Cache-Control"] = "private, max-age=3600"
+    return response
+
+
+@require_POST
+def attachment_delete(request, pk):
+    a = get_object_or_404(_visible_attachments(request.user), pk=pk)
+    job = a.job
+    a.file.delete(save=False)
+    a.delete()
+    messages.success(request, "File deleted.")
+    return redirect(f"{job.get_absolute_url()}#files")

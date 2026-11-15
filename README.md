@@ -88,6 +88,8 @@ GitHub Actions runs the tests on every push. If they pass, it builds the image:
 
 ## Backups
 
+Photos and letters uploaded to jobs are stored as files in the data folder under `uploads/`. They are **not** in the database backup below, so make sure your Appdata Backup (or rclone, etc.) covers the whole `/mnt/user/appdata/pureamiga-crm` folder.
+
 **Tools → Download backup now** gives you a copy of the whole database, and also keeps one in the data folder under `backups/` (last 14). For scheduled backups, the Appdata Backup plugin covers `/mnt/user/appdata/pureamiga-crm`. Or run this nightly with User Scripts:
 
 ```sh
@@ -129,5 +131,6 @@ Optional environment overrides: `ANTHROPIC_API_KEY`, `CRM_SUMMARY_MODEL`, `DJANG
 - **Costs:** add cost lines on the job page (bench time, parts, postage, packaging, other). Each line records who added it, and the job shows the total and the quote less costs.
 - **Checks:** the In/Out checks from the job sheet (power, boots, video, audio, ports, …) are on the job page. **all Y** fills the empty ones in a column.
 - **Job sheet PDF** (button at the top of a job) produces the printed customer repair sheet: customer, dates, repair ref, make/model/serial, parts sent, checks, work requested, condition, and the customer summary as *Work Completed*.
+- **Photos & letters:** upload photos (JPEG, PNG, WebP, HEIC) or PDFs to a job, e.g. a letter that came with the machine. On a phone, the button offers the camera.
 - **Bench log:** each entry can be edited (text and date) or deleted. If an entry has dates on their own lines (`21/2/2022`), **Split by date** turns it into one entry per date.
 - Returned jobs stay on the board for 14 days. All of them are under **All jobs**.

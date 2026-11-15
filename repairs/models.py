@@ -390,3 +390,32 @@ class JobNote(models.Model):
 
     def __str__(self):
         return f"{self.job.ref} note {self.created_at:%Y-%m-%d}"
+
+
+def _attachment_path(instance, filename):
+    return f"jobs/{instance.job_id}/{timezone.now():%Y%m%d-%H%M%S}-{filename}"
+
+
+class JobAttachment(models.Model):
+    """A photo or scanned letter kept with a job."""
+    job = models.ForeignKey(RepairJob, on_delete=models.CASCADE, related_name="attachments")
+    file = models.FileField(upload_to=_attachment_path, max_length=300)
+    original_name = models.CharField(max_length=255)
+    content_type = models.CharField(max_length=50)
+    caption = models.CharField(max_length=200, blank=True)
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name="+")
+    created_at = models.DateTimeField(default=timezone.now, editable=False)
+
+    class Meta:
+        ordering = ["created_at", "pk"]
+
+    def __str__(self):
+        return f"{self.job.ref} {self.original_name}"
+
+    @property
+    def is_image(self):
+        return self.content_type in ("image/jpeg", "image/png", "image/webp", "image/gif")
+
+    def get_absolute_url(self):
+        return reverse("repairs:attachment_file", args=[self.pk])

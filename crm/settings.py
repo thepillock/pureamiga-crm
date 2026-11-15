@@ -157,6 +157,11 @@ SECURE_REFERRER_POLICY = "same-origin"
 X_FRAME_OPTIONS = "DENY"
 # HSTS is left to NPM+ so it's set in one place.
 
+# Photos and letters attached to jobs. Not served as static files: a view checks the user can see the job.
+MEDIA_ROOT = DATA_DIR / "uploads"
+MEDIA_URL = "/uploads/"
+MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024
+
 # Jetpack dumps can be tens of MB; uploads over 2.5 MB spool to /tmp.
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 
