@@ -13,6 +13,7 @@ class Stage(models.TextChoices):
     RECEIVED = "received", "Received"
     IN_PROGRESS = "in_progress", "Being worked on"
     TESTING = "testing", "Being tested"
+    COMPLETED = "completed", "Completed"
     RETURNED = "returned", "Returned"
 
 
@@ -23,6 +24,7 @@ STAGE_TIMESTAMP = {
     Stage.RECEIVED: "received_at",
     Stage.IN_PROGRESS: "started_at",
     Stage.TESTING: "testing_at",
+    Stage.COMPLETED: "completed_at",
     Stage.RETURNED: "returned_at",
 }
 
@@ -180,6 +182,7 @@ class RepairJob(TimeStamped):
     received_at = models.DateTimeField(null=True, blank=True)
     started_at = models.DateTimeField(null=True, blank=True)
     testing_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
     returned_at = models.DateTimeField(null=True, blank=True)
 
     return_tracking = models.CharField("Return tracking no.", max_length=100, blank=True)

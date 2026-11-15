@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from repairs.models import Customer, Machine, RepairJob, Stage
 
@@ -117,3 +118,32 @@ class WorkflowTests(TestCase):
 
     def test_no_banner_in_release(self):
         self.assertNotContains(self.client.get("/"), "env-banner")
+
+
+class CompletedStageTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_superuser("chris", password="a-long-test-pass")
+        self.client.force_login(self.user)
+        c = Customer.objects.create(first_name="Ada")
+        self.job = RepairJob.objects.create(customer=c, machine=Machine.objects.create(customer=c, model="Amiga 600"),
+                                            title="Finished, awaiting return", stage=Stage.TESTING)
+
+    def test_completed_sits_between_testing_and_returned(self):
+        self.assertEqual([s.value for s in Stage], ["received", "in_progress", "testing", "completed", "returned"])
+        self.assertEqual(self.job.next_stage(), Stage.COMPLETED)
+
+    def test_moving_to_completed(self):
+        self.client.post(reverse("repairs:job_move", args=[self.job.pk]), {"stage": "completed"})
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.stage, Stage.COMPLETED)
+        self.assertIsNotNone(self.job.completed_at)
+        self.assertEqual(self.job.next_stage(), Stage.RETURNED)
+        board = self.client.get("/")
+        self.assertContains(board, 'class="col stage-completed"')
+        self.assertContains(board, "Finished, awaiting return")
+        self.assertContains(board, "Returned →")  # the card's next step
+        self.assertContains(self.client.get("/jobs/?stage=completed"), "Finished, awaiting return")
+
+    def test_completed_jobs_stay_on_board(self):
+        self.job.set_stage("completed", user=self.user, when=timezone.now() - timezone.timedelta(days=60))
+        self.assertContains(self.client.get("/"), "Finished, awaiting return")
