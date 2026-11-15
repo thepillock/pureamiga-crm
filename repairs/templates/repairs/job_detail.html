@@ -50,7 +50,8 @@
       {% for h in history %}
       <tr><td class="when">{{ h.when|date:"j M Y" }}<span>{{ h.when|date:"H:i" }}</span></td>
           <td>{{ h.text }}</td>
-          <td class="who">{% if h.who %}{{ h.who.get_short_name|default:h.who.username }}{% endif %}</td></tr>
+          <td class="who">{% if h.who %}{{ h.who.get_short_name|default:h.who.username }}{% endif %}</td>
+          <td class="row-actions">{% if h.stage_change %}<a href="{% url 'repairs:stage_change_edit' h.stage_change %}" title="Change this date">Edit</a>{% endif %}</td></tr>
       {% empty %}<tr><td class="empty">No history yet.</td></tr>{% endfor %}
     </table>
   </section>

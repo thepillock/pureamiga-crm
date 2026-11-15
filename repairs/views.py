@@ -12,7 +12,7 @@ from django.views.decorators.http import require_POST
 from .access import (visible_costs, visible_customers, visible_jobs, visible_machines,
                      visible_notes)
 from .forms import (BookInForm, CustomerForm, JobCostForm, JobNoteEditForm, JobNoteForm, MachineForm,
-                    PaymentForm, RepairJobForm, suggested_repair_ref)
+                    PaymentForm, RepairJobForm, StageChangeForm, suggested_repair_ref)
 from . import jobsheet
 from .models import (CHECK_RESULTS, CHECKS, CUSTOM_CHECKS_KEY, MAX_CUSTOM_CHECKS, STAGE_TIMESTAMP, JobNote, Stage,
                      StageChange)
@@ -85,7 +85,7 @@ def job_list(request):
 def _history(job):
     """Stage changes and handovers, oldest first."""
     events = [
-        {"when": s.changed_at, "who": s.changed_by,
+        {"when": s.changed_at, "who": s.changed_by, "stage_change": s.pk,
          "text": (f"{s.get_from_stage_display()} → " if s.from_stage else "") + s.get_to_stage_display()}
         for s in job.stage_changes.select_related("changed_by")
     ]
@@ -440,3 +440,27 @@ def payment_delete(request, pk):
     job = payment.job
     payment.delete()
     return redirect(f"{job.get_absolute_url()}#costs")
+
+
+# --- Stage history -------------------------------------------------------------
+
+def stage_change_edit(request, pk):
+    """Correct when a job moved stage. The stage bar follows the latest move into that stage."""
+    change = get_object_or_404(StageChange.objects.filter(job__in=visible_jobs(request.user)).select_related("job"),
+                               pk=pk)
+    job = change.job
+    form = StageChangeForm(request.POST or None, instance=change)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        stage = Stage(change.to_stage)
+        latest = job.stage_changes.filter(to_stage=stage).order_by("-changed_at", "-pk").first()
+        field = STAGE_TIMESTAMP[stage]
+        setattr(job, field, latest.changed_at)
+        job.save(update_fields=[field, "updated_at"])
+        messages.success(request, f"{change.get_to_stage_display()} date updated.")
+        return redirect(job)
+    return render(request, "repairs/form.html", {
+        "form": form,
+        "title": f"{job.ref}: when did it move to {change.get_to_stage_display()}?",
+        "cancel": job.get_absolute_url(),
+    })

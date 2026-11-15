@@ -1,7 +1,7 @@
 from django import forms
 
 from .logtext import next_repair_ref, normalise_repair_ref
-from .models import ITEMS_RECEIVED_CHOICES, Customer, JobCost, JobNote, Machine, Payment, RepairJob
+from .models import ITEMS_RECEIVED_CHOICES, Customer, JobCost, JobNote, Machine, Payment, RepairJob, StageChange
 
 
 def clean_repair_ref_value(value, job_pk=None):
@@ -167,3 +167,11 @@ class PaymentForm(forms.ModelForm):
         if amount <= 0:
             raise forms.ValidationError("Amount must be more than zero.")
         return amount
+
+
+class StageChangeForm(forms.ModelForm):
+    class Meta:
+        model = StageChange
+        fields = ["changed_at"]
+        labels = {"changed_at": "Date and time"}
+        widgets = {"changed_at": forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M")}

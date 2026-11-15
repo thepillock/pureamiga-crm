@@ -172,3 +172,40 @@ class BackfillMigrationTests(TestCase):
         self.assertEqual(job.notes.count(), 3)
         self.assertTrue(job.notes.filter(text="Caps").exists())
         self.assertEqual(native.notes.count(), 1)
+
+
+class StageDateEditTests(TestCase):
+    def setUp(self):
+        self.chris = get_user_model().objects.create_superuser("chris", password="a-long-test-pass")
+        self.client.force_login(self.chris)
+        c = Customer.objects.create(first_name="Ada")
+        self.job = RepairJob.objects.create(customer=c, machine=Machine.objects.create(customer=c, model="Amiga 600"),
+                                            title="Stuck in testing", received_at=timezone.now())
+        self.job.set_stage("testing", user=self.chris)
+        self.job.set_stage("returned", user=self.chris)
+
+    def test_edit_returned_date_updates_stage_bar(self):
+        change = self.job.stage_changes.get(to_stage="returned")
+        page = self.client.get(self.job.get_absolute_url())
+        self.assertContains(page, reverse("repairs:stage_change_edit", args=[change.pk]))
+        self.assertContains(self.client.get(reverse("repairs:stage_change_edit", args=[change.pk])),
+                            "when did it move to Returned?")
+        self.client.post(reverse("repairs:stage_change_edit", args=[change.pk]), {"changed_at": "2024-06-23T14:30"})
+        self.job.refresh_from_db()
+        self.assertEqual(timezone.localtime(self.job.returned_at).strftime("%Y-%m-%d %H:%M"), "2024-06-23 14:30")
+        self.assertContains(self.client.get(self.job.get_absolute_url()), "23 Jun 2024")
+
+    def test_stage_bar_follows_latest_move_into_stage(self):
+        # Moved back to testing and returned again: editing the older Returned entry leaves the bar on the newer one
+        self.job.set_stage("testing", user=self.chris)
+        self.job.set_stage("returned", user=self.chris)
+        first, second = self.job.stage_changes.filter(to_stage="returned").order_by("pk")
+        self.client.post(reverse("repairs:stage_change_edit", args=[first.pk]), {"changed_at": "2020-01-01T10:00"})
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.returned_at, second.changed_at)
+
+    def test_restricted_user(self):
+        phil = get_user_model().objects.create_user("phil", password="a-long-test-pass")
+        self.client.force_login(phil)
+        change = self.job.stage_changes.first()
+        self.assertEqual(self.client.get(reverse("repairs:stage_change_edit", args=[change.pk])).status_code, 404)
