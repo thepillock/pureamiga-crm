@@ -84,8 +84,9 @@ def render(job):
     """Return the job sheet as PDF bytes."""
     buf = BytesIO()
     c = canvas.Canvas(buf, pagesize=A4, pageCompression=0)
-    ref = job.repair_ref or job.ref
-    c.setTitle(f"Pure Amiga repair sheet {ref}")
+    # The customer only ever sees the repair number (e.g. A95); our internal PA ref stays off the sheet.
+    ref = job.repair_ref
+    c.setTitle(f"Pure Amiga repair sheet {ref}".strip())
     c.setAuthor("Pure Amiga")
     c.setLineWidth(0.8)
     c.setStrokeColor(black)

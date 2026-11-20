@@ -59,6 +59,7 @@ class ChecksAndSheetTests(TestCase):
         for text in [b"Adam Twine", b"B23", b"A600", b"Board 8514492315986004124297", b"Rectify sound issues",
                      b"Filter stuck", b"Fault", b"Replaced U28 1488 buffer", b"Board, Lower shield", b"Date Out"]:
             self.assertIn(text, pdf, text)
+        self.assertNotIn(self.job.ref.encode(), pdf)  # internal PA ref never goes to the customer
 
         resp = self.client.get(reverse("repairs:job_sheet_pdf", args=[self.job.pk]))
         self.assertEqual(resp["Content-Type"], "application/pdf")
@@ -68,7 +69,9 @@ class ChecksAndSheetTests(TestCase):
         self.job.repair_ref = ""
         self.job.customer_summary = "Lots of work. " * 400
         self.job.save()
-        self.assertTrue(jobsheet.render(self.job).startswith(b"%PDF"))
+        pdf = jobsheet.render(self.job)
+        self.assertTrue(pdf.startswith(b"%PDF"))
+        self.assertNotIn(self.job.ref.encode(), pdf)
         resp = self.client.get(reverse("repairs:job_sheet_pdf", args=[self.job.pk]))
         self.assertIn(f'filename="Repair_{self.job.ref}.pdf"', resp["Content-Disposition"])
 

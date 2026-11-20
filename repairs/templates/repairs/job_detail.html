@@ -28,7 +28,7 @@
     </form>
   </details>
   {% endif %}
-  <a class="btn ghost" href="{% url 'repairs:job_sheet_pdf' job.pk %}" target="_blank" title="Printable repair sheet">Job sheet PDF</a>
+  <a class="btn ghost" href="{% url 'repairs:job_sheet_pdf' job.pk %}" target="_blank" title="{% if job.repair_ref %}Printable repair sheet{% else %}No repair number yet, so the Job Number box will be blank{% endif %}">Job sheet PDF</a>
   <a class="btn ghost" href="{% url 'repairs:job_edit' job.pk %}">Edit</a>
 </div>
 
