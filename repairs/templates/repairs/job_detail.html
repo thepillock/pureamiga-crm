@@ -113,7 +113,10 @@
 </div>
 
 <section class="panel">
-  <h2>Work log</h2>
+  <div class="panel-head">
+    <h2>Work log</h2>
+    {% if notes %}<button type="button" class="btn ghost small" id="copy-log" title="Copy every entry, oldest first">Copy log</button>{{ log_text|json_script:"log-text" }}{% endif %}
+  </div>
   {% for n in notes %}
   <div class="note" id="note-{{ n.pk }}">
     <div class="note-meta">
@@ -238,6 +241,30 @@
 </div>
 </section>
 <script>
+  // Copy the whole work log. navigator.clipboard needs HTTPS (or localhost); fall back to the old way otherwise.
+  (() => {
+    const btn = document.getElementById("copy-log");
+    if (!btn) return;
+    const text = JSON.parse(document.getElementById("log-text").textContent);
+    const fallback = () => {
+      const t = document.createElement("textarea");
+      t.value = text; t.setAttribute("readonly", ""); t.style.position = "fixed"; t.style.opacity = "0";
+      document.body.appendChild(t); t.select();
+      const ok = document.execCommand("copy"); t.remove();
+      if (!ok) throw new Error("copy failed");
+    };
+    btn.addEventListener("click", async () => {
+      const label = btn.textContent;
+      try {
+        if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(text);
+        else fallback();
+        btn.textContent = "Copied ✓";
+      } catch (e) {
+        try { fallback(); btn.textContent = "Copied ✓"; } catch (e2) { btn.textContent = "Couldn't copy"; }
+      }
+      setTimeout(() => { btn.textContent = label; }, 2000);
+    });
+  })();
   // Show the chosen file names next to the upload button.
   document.querySelectorAll(".upload-form input[type=file]").forEach(i => i.addEventListener("change", () => {
     const names = [...i.files].map(f => f.name);

@@ -16,7 +16,7 @@ from .forms import (BookInForm, CustomerForm, JobCostForm, JobNoteEditForm, JobN
 from . import attachments, jobsheet
 from .models import (CHECK_RESULTS, CHECKS, CUSTOM_CHECKS_KEY, MAX_CUSTOM_CHECKS, STAGE_TIMESTAMP, JobNote, Stage,
                      StageChange)
-from .notes import split_note
+from .notes import log_as_text, split_note
 from .summary import SummaryError, generate_summary, is_enabled as summary_enabled
 
 RETURNED_ON_BOARD_DAYS = 14
@@ -131,9 +131,11 @@ def job_detail(request, pk):
             JobNote.objects.create(job=job, author=request.user, text=note_form.cleaned_data["text"])
             return redirect(job)
     User = get_user_model()
+    notes = list(job.notes.select_related("author").order_by("created_at", "pk"))  # oldest first
     return render(request, "repairs/job_detail.html", {
         "job": job,
-        "notes": job.notes.select_related("author").order_by("created_at", "pk"),  # oldest first
+        "notes": notes,
+        "log_text": log_as_text(notes),
         "steps": [{"stage": st, "at": getattr(job, STAGE_TIMESTAMP[st])} for st in Stage],
         "costs": job.costs.select_related("added_by"),
         "cost_totals": _cost_totals(job),
