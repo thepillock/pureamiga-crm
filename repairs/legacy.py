@@ -16,8 +16,10 @@ from zoneinfo import ZoneInfo
 
 from django.conf import settings
 from django.db import transaction
+from django.utils import timezone
 
 from .logtext import normalise_repair_ref
+from .money import derive_bench_time
 from .models import (Customer, JobCost, JobNote, Machine, Payment, RepairJob, Stage, StageChange,
                      fold_extra_checks)
 
@@ -165,8 +167,9 @@ def _enrich(job, item, user, result, from_jetpack):
             for (amount, description, when), n in wanted.items():
                 have = job.costs.filter(kind="parts", amount=amount, description=description).count()
                 for _ in range(n - have):
+                    at = _when(when) or job.created_at
                     JobCost.objects.create(job=job, kind="parts", amount=amount, description=description,
-                                           added_by=user, created_at=_when(when) or job.created_at)
+                                           added_by=user, created_at=at, date=timezone.localtime(at).date())
                     result.stats["cost_lines_added"] += 1
 
     # Payments: the finance sheet's Money Made replaces the Jetpack quote
@@ -185,5 +188,7 @@ def _enrich(job, item, user, result, from_jetpack):
                 Payment.objects.create(job=job, amount=amount, paid_on=paid_on, method="not_recorded",
                                        reference=FINANCE_REF, added_by=user)
                 result.stats["payments_added"] += 1
+    if finance_costs or finance_payments:
+        derive_bench_time(job)  # the charge minus parts is bench time
     if from_jetpack and item.get("money_notes"):
         result.notes.append(f"{job.repair_ref}: {'; '.join(item['money_notes'])} (not added - Jetpack work log left alone)")

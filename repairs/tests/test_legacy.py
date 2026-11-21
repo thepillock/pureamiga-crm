@@ -42,7 +42,9 @@ class LegacyLoadTests(TestCase):
         note = job.notes.get()
         self.assertIn("Parts used: A600 cap kit", note.text)
         self.assertIn("Not yet paid", note.text)
-        self.assertEqual(list(job.costs.values_list("kind", "amount")), [("parts", Decimal("6.00"))])
+        # The £40 charge less £6 of parts was bench time
+        self.assertEqual(list(job.costs.values_list("kind", "amount", "from_old_charge")),
+                         [("parts", Decimal("6.00"), False), ("bench_time", Decimal("34.00"), True)])
         self.assertEqual(list(job.payments.values_list("amount", "reference")), [(Decimal("40.00"), FINANCE_REF)])
 
     def test_dry_run_and_rerun(self):
@@ -83,7 +85,8 @@ class LegacyLoadTests(TestCase):
         self.assertEqual(timezone.localtime(job.stage_changes.get().changed_at).date().isoformat(), "2023-05-01")
         self.assertEqual(list(job.notes.values_list("text", flat=True)), ["original log"])
         self.assertEqual(list(job.payments.values_list("amount", "reference")), [(Decimal("37.00"), FINANCE_REF)])
-        self.assertEqual(job.costs.get().amount, Decimal("6.00"))
+        self.assertEqual(job.costs.get(kind="parts").amount, Decimal("6.00"))
+        self.assertEqual(job.costs.get(kind="bench_time").amount, Decimal("31.00"))  # quote replaced, so recalculated
 
     def test_keeps_jetpack_parts_costs(self):
         job = RepairJob.objects.create(customer=self.lee, machine=Machine.objects.create(customer=self.lee, model="Amiga 600"),

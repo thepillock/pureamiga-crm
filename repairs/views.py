@@ -14,7 +14,7 @@ from .access import (can_view_all, visible_costs, visible_customers, visible_job
 from .forms import (BookInForm, CustomerForm, JobCostForm, JobNoteEditForm, JobNoteForm, MachineForm,
                     PaymentForm, RepairJobForm, StageChangeForm, suggested_repair_ref)
 from . import attachments, jobsheet
-from .models import (CHECK_RESULTS, CHECKS, CUSTOM_CHECKS_KEY, MAX_CUSTOM_CHECKS, STAGE_TIMESTAMP, JobNote, Stage,
+from .models import (CHECK_RESULTS, CHECKS, CUSTOM_CHECKS_KEY, MAX_CUSTOM_CHECKS, STAGE_TIMESTAMP, CostKind, JobNote, Stage,
                      StageChange)
 from .notes import log_as_text, split_note
 from .summary import SummaryError, generate_summary, is_enabled as summary_enabled
@@ -105,15 +105,22 @@ def _halves(rows):
     return [rows[:mid], rows[mid:]]
 
 
-def _cost_totals(job):
-    """Costs added up per person, in the order each person first added one."""
+def _cost_people(job):
+    """Costs added up per person, in the order each first added one - only worth showing for more than one."""
     totals = {}
-    for c in job.costs.select_related("added_by"):
-        key = c.added_by_id
-        if key not in totals:
-            totals[key] = {"name": _name(c.added_by) or "not recorded", "amount": Decimal("0.00")}
-        totals[key]["amount"] += c.amount
-    return list(totals.values())
+    for c in job.costs.filter(from_old_charge=False).select_related("added_by"):
+        name = _name(c.added_by) or "not recorded"
+        totals[name] = totals.get(name, Decimal("0.00")) + c.amount
+    return list(totals.items()) if len(totals) > 1 else []
+
+
+def _cost_totals(job):
+    """Costs added up per type (Parts, Bench time, ...), in the usual order of types."""
+    totals = {}
+    for c in job.costs.all():
+        totals[c.kind] = totals.get(c.kind, Decimal("0.00")) + c.amount
+    order = [CostKind.PARTS, CostKind.BENCH_TIME] + [k for k in CostKind if k not in (CostKind.PARTS, CostKind.BENCH_TIME)]
+    return [{"name": k.label, "amount": totals[k]} for k in order if k in totals]
 
 
 def _share_candidates(job):
@@ -139,9 +146,8 @@ def job_detail(request, pk):
         "steps": [{"stage": st, "at": getattr(job, STAGE_TIMESTAMP[st])} for st in Stage],
         "costs": job.costs.select_related("added_by"),
         "cost_totals": _cost_totals(job),
+        "cost_people": _cost_people(job),
         "cost_form": JobCostForm(),
-        "payments": job.payments.select_related("added_by"),
-        "payment_form": PaymentForm(),
         "history": _history(job),
         "note_form": note_form,
         "stages": Stage,
@@ -330,7 +336,9 @@ def cost_edit(request, pk):
     cost = get_object_or_404(visible_costs(request.user).select_related("job"), pk=pk)
     form = JobCostForm(request.POST or None, instance=cost)
     if request.method == "POST" and form.is_valid():
-        form.save()
+        cost = form.save(commit=False)
+        cost.from_old_charge = False  # edited by hand: keep it as it is from now on
+        cost.save()
         return redirect(f"{cost.job.get_absolute_url()}#costs")
     return render(request, "repairs/form.html", {
         "form": form, "title": f"Edit cost · {cost.job.ref}", "cancel": f"{cost.job.get_absolute_url()}#costs",

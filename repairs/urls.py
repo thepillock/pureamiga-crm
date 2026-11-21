@@ -39,4 +39,5 @@ urlpatterns = [
     path("machines/<int:pk>/edit/", views.machine_edit, name="machine_edit"),
     path("tools/", system_views.tools, name="tools"),
     path("tools/backup/", system_views.download_backup, name="download_backup"),
+    path("tools/parts/", system_views.parts_report, name="parts_report"),
 ]

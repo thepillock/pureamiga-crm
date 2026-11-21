@@ -39,6 +39,12 @@
 </section>
 
 <section class="panel form">
+  <h2>Parts spend</h2>
+  <p class="hint">Every parts cost in a date range (this tax year to start with), with a CSV download for your accounts.</p>
+  <a class="btn ghost" href="{% url 'repairs:parts_report' %}">Open the parts report</a>
+</section>
+
+<section class="panel form">
   <h2>Backup</h2>
   <p class="hint">Downloads a copy of the whole database (customers, machines, jobs, users). It's personal data, so store it somewhere safe.
     A copy is also kept on the server in the data folder under <code>backups/</code> (last 14).</p>

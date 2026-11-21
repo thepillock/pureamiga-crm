@@ -12,6 +12,7 @@ from django.utils import timezone
 
 from . import jetpack_import as ji
 
+from .money import derive_bench_time
 from .models import Customer, JobCost, JobNote, Machine, Payment, RepairJob, Stage, StageChange
 from .notes import IMPORTED_HEADER, split_note
 
@@ -98,11 +99,13 @@ def _import_costs(job, j, added_by):
     itemised = [(kind, amount) for kind, amount in (("bench_time", j.bench_time_cost), ("parts", j.parts_cost))
                 if amount]
     for kind, amount in itemised:
-        JobCost.objects.create(job=job, kind=kind, amount=amount, added_by=added_by, created_at=when)
+        JobCost.objects.create(job=job, kind=kind, amount=amount, added_by=added_by, created_at=when,
+                               date=timezone.localtime(when).date())
     # The Jetpack quote is what the customer paid, so it's recorded as a payment, not a cost.
     if j.quote_value:
         Payment.objects.create(job=job, amount=j.quote_value, paid_on=timezone.localtime(when).date(),
                                method="not_recorded", reference="From Jetpack quote", added_by=added_by)
+        derive_bench_time(job)
 
 
 def _write(data, by=None):

@@ -1,4 +1,5 @@
 from django import forms
+from django.utils import timezone
 
 from .logtext import next_repair_ref, normalise_repair_ref
 from .models import ITEMS_RECEIVED_CHOICES, Customer, JobCost, JobNote, Machine, Payment, RepairJob, StageChange
@@ -139,11 +140,20 @@ class JobNoteForm(forms.ModelForm):
 class JobCostForm(forms.ModelForm):
     class Meta:
         model = JobCost
-        fields = ["kind", "description", "amount"]
+        fields = ["kind", "date", "amount", "description", "supplier"]
         widgets = {
-            "description": forms.TextInput(attrs={"placeholder": "e.g. Royal Mail Special Delivery"}),
+            "date": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+            "description": forms.TextInput(attrs={"placeholder": "What it was, e.g. 2× 8520 CIA"}),
+            "supplier": forms.TextInput(attrs={"placeholder": "Supplier (optional)"}),
             "amount": forms.NumberInput(attrs={"step": "0.01", "min": "0", "placeholder": "0.00"}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["date"].required = False
+
+    def clean_date(self):
+        return self.cleaned_data.get("date") or timezone.localdate()
 
     def clean_amount(self):
         amount = self.cleaned_data["amount"]

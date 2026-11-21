@@ -1,0 +1,38 @@
+{% extends "repairs/base.html" %}
+{% block title %}Parts spend{% endblock %}
+{% block content %}
+<div class="bar"><h1>Parts spend</h1><a href="{% url 'repairs:tools' %}">← Tools</a></div>
+
+<section class="panel">
+  <form method="get" class="report-range">
+    <label>From <input type="date" name="from" value="{{ start|date:'Y-m-d' }}"></label>
+    <label>To <input type="date" name="to" value="{{ end|date:'Y-m-d' }}"></label>
+    <button class="btn small">Show</button>
+    <a class="btn ghost small" href="?from={{ start|date:'Y-m-d' }}&amp;to={{ end|date:'Y-m-d' }}&amp;csv=1">Download CSV</a>
+  </form>
+  <p class="report-total">{{ lines|length }} part{{ lines|length|pluralize }}, <strong>£{{ total }}</strong> from {{ start|date:"j M Y" }} to {{ end|date:"j M Y" }}</p>
+  <table class="list compact costs">
+    <thead><tr><th>Date</th><th>Job</th><th>Description</th><th>Supplier</th><th class="num">Amount</th></tr></thead>
+    {% for c in lines %}
+    <tr><td class="date">{{ c.date|date:"j M Y" }}</td>
+      <td><a href="{{ c.job.get_absolute_url }}#costs">{{ c.job.repair_ref|default:c.job.ref }}</a></td>
+      <td>{{ c.description }}</td><td class="muted">{{ c.supplier }}</td><td class="num">£{{ c.amount }}</td></tr>
+    {% empty %}<tr><td colspan="5" class="empty">No parts in this range.</td></tr>{% endfor %}
+    {% if lines %}<tr class="total grand"><td colspan="4">Total</td><td class="num">£{{ total }}</td></tr>{% endif %}
+  </table>
+</section>
+
+{% if to_check %}
+<section class="panel">
+  <h2>Old jobs to check</h2>
+  <p class="hint">These old jobs' charge is less than their costs, so no bench time could be worked out. Fix the costs on each job if something's wrong.</p>
+  <table class="list compact costs">
+    <thead><tr><th>Job</th><th class="num">Old charge</th><th class="num">Costs</th></tr></thead>
+    {% for r in to_check %}
+    <tr><td><a href="{{ r.job.get_absolute_url }}#costs">{{ r.job.repair_ref|default:r.job.ref }}</a> {{ r.job.title }}</td>
+      <td class="num">£{{ r.charged|floatformat:2 }}</td><td class="num">£{{ r.costs }}</td></tr>
+    {% endfor %}
+  </table>
+</section>
+{% endif %}
+{% endblock %}

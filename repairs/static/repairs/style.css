@@ -289,3 +289,10 @@ table.custom-checks + .hint { margin-top: 8px; }
 .share-menu .hint { margin: 0 0 2px; }
 .menu-items.share-menu .btn { align-self: flex-start; width: auto; margin-top: 4px; padding: 5px 14px;
   background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent); text-align: center; }
+.costs td.date { white-space: nowrap; }
+.cost-form input[name=supplier] { width: 170px; }
+.report-range { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
+.report-range label { display: flex; flex-direction: column; font-size: .85rem; color: var(--muted); gap: 2px; }
+.report-range input { width: auto; }
+.report-total { margin: 14px 0 6px; }
+#costs details.add-cost + .hint, #costs .hint + .hint { margin-top: 10px; }

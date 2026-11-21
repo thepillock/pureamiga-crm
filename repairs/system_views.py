@@ -1,4 +1,8 @@
-"""First-run setup, health check and the staff Tools page (import + backups)."""
+"""First-run setup, health check and the staff Tools page (import, backups, parts report)."""
+import csv
+from datetime import date
+from decimal import Decimal
+
 from django import forms
 from django.contrib import messages
 from django.contrib.auth import get_user_model, login
@@ -7,14 +11,17 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.views import LoginView
 from django.core.exceptions import PermissionDenied
 from django.db import connection
+from django.db.models import Sum
 from django.http import FileResponse, HttpResponse
 from django.shortcuts import redirect, render
+from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
 from .backup import backup_dir, make_backup
 from .importer import hand_imported_jobs, run_import
-from .models import RepairJob
+from .models import JobCost, RepairJob
+from .money import tax_year
 
 
 def _no_users_yet():
@@ -118,3 +125,40 @@ def download_backup(request):
     path = make_backup()
     return FileResponse(open(path, "rb"), as_attachment=True, filename=path.name,
                         content_type="application/vnd.sqlite3")
+
+
+def _date_param(value, fallback):
+    try:
+        return date.fromisoformat(value)
+    except (TypeError, ValueError):
+        return fallback
+
+
+def parts_report(request):
+    """Parts bought in a date range (default: this UK tax year), to offset against income. ?csv=1 downloads it."""
+    _staff_only(request)
+    start, end = tax_year(timezone.localdate())
+    start = _date_param(request.GET.get("from"), start)
+    end = _date_param(request.GET.get("to"), end)
+    lines = (JobCost.objects.filter(kind="parts", date__gte=start, date__lte=end)
+             .select_related("job").order_by("date", "pk"))
+    total = (lines.aggregate(s=Sum("amount"))["s"] or Decimal("0")).quantize(Decimal("0.01"))
+    if request.GET.get("csv"):
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = f'attachment; filename="parts-{start}-to-{end}.csv"'
+        out = csv.writer(response)
+        out.writerow(["Date", "Repair", "Job", "Description", "Supplier", "Amount"])
+        for c in lines:
+            out.writerow([c.date.isoformat(), c.job.repair_ref, c.job.ref, c.description, c.supplier, c.amount])
+        out.writerow(["", "", "", "", "Total", total])
+        return response
+    # Old jobs whose single charge was less than their costs, so no bench time could be worked out.
+    to_check = []
+    for job in RepairJob.objects.filter(payments__isnull=False).distinct().order_by("repair_ref", "pk"):
+        charged = job.payments.aggregate(s=Sum("amount"))["s"]
+        costs = job.total_costs
+        if charged < costs:
+            to_check.append({"job": job, "charged": charged, "costs": costs})
+    return render(request, "repairs/parts_report.html", {
+        "lines": lines, "total": total, "start": start, "end": end, "to_check": to_check,
+    })

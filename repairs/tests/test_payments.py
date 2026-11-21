@@ -28,9 +28,7 @@ class PaymentViewTests(TestCase):
         self.client.post(add, {"paid_on": "2026-11-15", "method": "cash", "amount": "0"})  # rejected
         self.assertEqual(self.job.payments.count(), 2)
         page = self.client.get(self.job.get_absolute_url())
-        self.assertContains(page, "Total charged")
-        self.assertContains(page, "£50.00")
-        self.assertContains(page, "PayPal")
+        self.assertNotContains(page, "Total charged")  # charges are kept but no longer shown on the job page
         p = self.job.payments.get(method="paypal")
         self.assertEqual(p.added_by, self.chris)
         self.client.post(reverse("repairs:payment_edit", args=[p.pk]),

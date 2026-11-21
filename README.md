@@ -135,3 +135,14 @@ Optional environment overrides: `ANTHROPIC_API_KEY`, `CRM_SUMMARY_MODEL`, `DJANG
 - **Photos & letters:** upload photos (JPEG, PNG, WebP, HEIC) or PDFs to a job, e.g. a letter that came with the machine. On a phone, the button offers the camera.
 - **Bench log:** each entry can be edited (text and date) or deleted. If an entry has dates on their own lines (`21/2/2022`), **Split by date** turns it into one entry per date.
 - Returned jobs stay on the board for 14 days. All of them are under **All jobs**.
+
+## Costs
+
+Each job's **Costs** are what the customer is asked for: **Parts** at what you paid (they're passed on at cost)
+plus **Bench time**. The panel adds them up as **Total asked**. Give parts a date and, if you like, a supplier -
+**Tools → Parts spend** lists every part bought in a date range (this UK tax year to start with) with a CSV download.
+
+Older jobs recorded one charge for the whole job. When upgrading, the charge minus the parts becomes a bench-time
+line ("Worked out from the old charge"); jobs where that doesn't add up are listed under **Old jobs to check** on
+the Parts spend page. The old charges are kept in the database but no longer shown.
+

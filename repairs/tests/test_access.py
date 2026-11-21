@@ -140,14 +140,13 @@ class VisibilityTests(TestCase):
         cost = job.costs.get(kind="postage")
         self.assertEqual(cost.added_by, self.phil)
         resp = self.client.get(job.get_absolute_url())
-        self.assertContains(resp, "Total – Phil")
+        self.assertContains(resp, "Total asked")
         self.assertContains(resp, "£15.50")
-        self.assertNotContains(resp, "Total – Chris")
-        self.assertNotContains(resp, "grand")         # one person: no overall total line
+        self.assertNotContains(resp, "Added by")  # only shown when more than one person added costs
         self.client.force_login(self.chris)
         self.client.post(add, {"kind": "parts", "description": "Caps", "amount": "10"})
         resp = self.client.get(job.get_absolute_url())
-        self.assertContains(resp, "Total – Chris")
+        self.assertContains(resp, "Added by Phil £15.50 · Chris £10.00")
         self.assertContains(resp, "£25.50")          # overall total
         self.client.force_login(self.phil)
         self.client.post(reverse("repairs:cost_edit", args=[cost.pk]),

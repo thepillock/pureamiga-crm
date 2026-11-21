@@ -339,14 +339,18 @@ class CostKind(models.TextChoices):
 class JobCost(models.Model):
     job = models.ForeignKey(RepairJob, on_delete=models.CASCADE, related_name="costs")
     kind = models.CharField("Type", max_length=20, choices=CostKind.choices, default=CostKind.PARTS)
+    date = models.DateField(default=timezone.localdate, help_text="When you bought it or did the work")
     description = models.CharField(max_length=200, blank=True)
+    supplier = models.CharField(max_length=100, blank=True)
     amount = models.DecimalField(max_digits=8, decimal_places=2)
     added_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
                                  related_name="+")
     created_at = models.DateTimeField(default=timezone.now)
+    # Bench time worked out from an old single charge (see money.derive_bench_time); recalculated on re-import.
+    from_old_charge = models.BooleanField(default=False, editable=False)
 
     class Meta:
-        ordering = ["created_at", "pk"]
+        ordering = ["date", "created_at", "pk"]
 
     def __str__(self):
         return f"{self.job.ref} {self.get_kind_display()} £{self.amount}"

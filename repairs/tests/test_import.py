@@ -67,7 +67,8 @@ class ImportCommandTests(TestCase):
         self.assertEqual(first.stage, Stage.RETURNED)
         self.assertIsNotNone(first.returned_at)
         self.assertEqual(first.items_received, ["board", "lower_shield", "accessories"])
-        self.assertEqual([(c.kind, c.amount) for c in first.costs.all()], [("bench_time", Decimal("35.00"))])
+        self.assertEqual([(c.kind, c.amount) for c in first.costs.all()],
+                         [("bench_time", Decimal("35.00")), ("bench_time", Decimal("19.00"))])  # rest of the £54 quote
         self.assertEqual(first.repair_ref, "A09")
         # Bench log split into dated entries, after the undated preamble
         entries = list(first.notes.filter(text__startswith=("Recapped")).values_list("text", flat=True))
@@ -116,10 +117,11 @@ class ImportQuoteTests(TestCase):
         from repairs.importer import run_import
         run_import(FIXTURE.read_text(), commit=True, by=chris)
         first = RepairJob.objects.get(legacy_jetpack_id=10)
-        self.assertEqual(list(first.costs.values_list("kind", "amount")), [("bench_time", Decimal("35.00"))])
+        self.assertEqual(list(first.costs.values_list("kind", "amount", "from_old_charge")),
+                         [("bench_time", Decimal("35.00"), False), ("bench_time", Decimal("19.00"), True)])
         self.assertEqual(list(first.payments.values_list("amount", "method", "reference")),
                          [(Decimal("54.00"), "not_recorded", "From Jetpack quote")])
         second = RepairJob.objects.get(legacy_jetpack_id=11)
-        self.assertFalse(second.costs.exists())
+        self.assertEqual(list(second.costs.values_list("kind", "amount")), [("bench_time", Decimal("20.00"))])
         self.assertEqual(second.payments.get().amount, Decimal("20.00"))
         self.assertEqual(second.payments.get().added_by, chris)
