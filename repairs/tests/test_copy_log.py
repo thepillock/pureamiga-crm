@@ -22,14 +22,14 @@ class CopyLogTests(TestCase):
     def test_format(self):
         notes = self.job.notes.order_by("created_at")
         self.assertEqual(log_as_text(notes),
-                         "Sun 1 Nov 2026\nFirst entry\n--\nTue 3 Nov 2026\nSecond entry\nover two lines")
+                         "Sun 1 Nov 2026\nFirst entry\n\n--\n\nTue 3 Nov 2026\nSecond entry\nover two lines")
 
     def test_button_and_text_on_page(self):
         self.client.force_login(self.user)
         page = self.client.get(self.job.get_absolute_url()).content.decode()
         self.assertIn('id="copy-log"', page)
         blob = page.split('<script id="log-text" type="application/json">')[1].split("</script>")[0]
-        self.assertTrue(json.loads(blob).startswith("Sun 1 Nov 2026\nFirst entry\n--\n"))
+        self.assertTrue(json.loads(blob).startswith("Sun 1 Nov 2026\nFirst entry\n\n--\n\n"))
 
     def test_no_button_when_log_empty(self):
         self.job.notes.all().delete()

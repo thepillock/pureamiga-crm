@@ -42,7 +42,7 @@ def split_note(note, note_model=None):
 
 
 def log_as_text(notes):
-    """The work log as plain text for the clipboard: date, entry, then -- between entries."""
+    """The work log as plain text for the clipboard: date, entry, then a blank line, --, blank line between entries."""
     from django.utils import timezone
-    return "\n--\n".join(
+    return "\n\n--\n\n".join(
         f"{timezone.localtime(n.created_at):%a %-d %b %Y}\n{n.text.strip()}" for n in notes)
